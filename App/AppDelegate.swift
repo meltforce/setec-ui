@@ -24,6 +24,11 @@ final class AppDelegate: NSObject, NSApplicationDelegate {
             [
                 "state": String(describing: access.state),
                 "rules": access.policy?.rules.count ?? 0,
+                // Scope names, not credentials — what the configured client
+                // carries is the thing the dialog reports and the thing worth
+                // checking from here.
+                "scopes": access.scopes,
+                "needs": TailnetPolicyClient.requiredScope,
             ]
         }
         DebugServer.shared.register(action: "select") { params in
