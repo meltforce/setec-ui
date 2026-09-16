@@ -1,0 +1,20 @@
+{
+  "standard": "2026-09-16",
+  "type": "mac-app",
+  "modules": [
+    "doc-contract",
+    "incidents",
+    "language-en",
+    "git-solo",
+    "skills",
+    "settings",
+    "verification",
+    "check-docs",
+    "mac-app"
+  ],
+  "declined": {
+    "specs": "The open items fit as roadmap rows. The design handoff is not a spec that is deleted when an item closes — it is the fidelity reference the build is measured against for as long as the app exists, so it lives in design/ rather than tasks/.",
+    "policy": "CLAUDE.md is short enough that mechanics and policy are still easy to tell apart, and the policy this project has is three citations into the homelab repo. A ## Standards section carries them; a second file would carry three lines."
+  },
+  "scaffold": { "source": "mac-app-template", "commit": "9b39d84e4c87b1f996f3eaa6a24e5b13525102af" }
+}

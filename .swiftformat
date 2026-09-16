@@ -1,0 +1,11 @@
+--swiftversion 6.0
+--indent 4
+--maxwidth 120
+--wraparguments before-first
+--wrapparameters before-first
+--stripunusedargs closure-only
+--self remove
+--header strip
+--ifdef no-indent
+--exclude .build,DerivedData
+--importgrouping testable-last

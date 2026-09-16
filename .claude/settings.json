@@ -1,0 +1,34 @@
+{
+  "permissions": {
+    "allow": [
+      "Bash(make:*)",
+      "Bash(xcodegen:*)",
+      "Bash(xcodebuild:*)",
+      "Bash(swiftformat:*)",
+      "Bash(swiftlint:*)",
+      "Bash(xcbeautify:*)",
+      "Bash(log stream:*)",
+      "Bash(log show:*)",
+      "Bash(screencapture:*)",
+      "Bash(open:*)",
+      "Bash(pkill -x:*)",
+      "Bash(~/bin/axdump:*)",
+      "Bash(~/bin/winid:*)",
+      "Bash(security find-identity:*)",
+      "Bash(codesign -d:*)",
+      "Bash(codesign -v:*)",
+      "Bash(tools/check-docs.sh:*)"
+    ],
+    "deny": [
+      "Bash(sudo:*)",
+      "Bash(xcode-select:*)",
+      "Bash(security delete:*)",
+      "Bash(security import:*)",
+      "Bash(security set-key-partition-list:*)",
+      "Bash(rm -rf /:*)",
+      "Bash(rm -rf ~:*)",
+      "Read(~/Library/Keychains/**)",
+      "Read(**/.env)"
+    ]
+  }
+}

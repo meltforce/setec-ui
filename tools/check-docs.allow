@@ -1,0 +1,26 @@
+# Lines the language sweep in check-docs.sh may not flag.
+#
+# Format: <path>%%<substring>
+# A hit is suppressed when its path matches an entry and the matched line
+# contains that entry's substring.
+#
+# Every entry carries a comment saying why. An entry without a reason is a
+# pattern that was weakened rather than a case that was understood.
+#
+# Do not widen an entry to cover a class of lines. If a whole file legitimately
+# contains German, that file is either a verbatim quote of external output or a
+# sign that the language-en module does not fit this project.
+
+# --- The common false positives, present in most English repos --------------
+
+# `die` — the shell error helper, and the English verb.
+# `falls` — English "falls back / falls out of sync / falls through".
+# `man` — the manual page.
+# Add the specific lines here as they come up; there is no blanket entry,
+# because a blanket entry stops the check from catching the real cases.
+
+# --- Entries for this repo --------------------------------------------------
+
+# The "Rolle" example is the language rule explaining itself: it names the
+# translation layer it exists to prevent.
+CLAUDE.md%%("Rolle" in the text

@@ -1,0 +1,115 @@
+# xcodegen project definition. `make project` turns this into SetecUI.xcodeproj,
+# which is gitignored. Edit this file, never the generated project.
+#
+# Capabilities: add the entitlement under `entitlements.properties` and the
+# matching NS*UsageDescription under `info.properties`. Both live here so a
+# capability is one change in one file.
+name: SetecUI
+
+options:
+  bundleIdPrefix: org.meltforce
+  # Apps target the current major release only. The value is the highest the
+  # installed SDK accepts (Xcode 26.3 ships macOS SDK 26.2); raise it when a
+  # newer SDK is installed. See DECISIONS.md in mac-app-template.
+  deploymentTarget:
+    macOS: "26.2"
+  createIntermediateGroups: true
+  generateEmptyDirectories: true
+
+settings:
+  base:
+    SWIFT_VERSION: "6.0"
+    DEVELOPMENT_TEAM: R43S29F4G5
+    CODE_SIGN_STYLE: Automatic
+    CODE_SIGN_IDENTITY: "Apple Development"
+    ENABLE_HARDENED_RUNTIME: YES
+    MARKETING_VERSION: "0.1.0"
+    CURRENT_PROJECT_VERSION: "1"
+    SWIFT_STRICT_CONCURRENCY: complete
+
+targets:
+  SetecUI:
+    type: application
+    platform: macOS
+    sources:
+      - path: App
+      - path: Services
+      - path: Resources
+        excludes:
+          - Info.plist
+          - App.entitlements
+    entitlements:
+      path: Resources/App.entitlements
+      properties:
+        com.apple.security.app-sandbox: false
+        com.apple.security.network.client: true
+    info:
+      path: Resources/Info.plist
+      properties:
+        CFBundleDisplayName: "Setec UI"
+        CFBundleName: "Setec UI"
+        CFBundleDevelopmentRegion: en
+        LSApplicationCategoryType: public.app-category.productivity
+        LSMinimumSystemVersion: "$(MACOSX_DEPLOYMENT_TARGET)"
+        NSHumanReadableCopyright: ""
+        NSSupportsAutomaticTermination: false
+        NSSupportsSuddenTermination: false
+        NSPrincipalClass: NSApplication
+    settings:
+      base:
+        PRODUCT_NAME: "Setec UI"
+        # The product name may carry spaces; the Swift module name must not.
+        PRODUCT_MODULE_NAME: SetecUI
+        PRODUCT_BUNDLE_IDENTIFIER: org.meltforce.setec-ui
+        GENERATE_INFOPLIST_FILE: NO
+        ASSETCATALOG_COMPILER_APPICON_NAME: AppIcon
+        ASSETCATALOG_COMPILER_GLOBAL_ACCENT_COLOR_NAME: AccentColor
+      configs:
+        Debug:
+          SWIFT_ACTIVE_COMPILATION_CONDITIONS: "$(inherited) DEBUG"
+
+  SetecUITests:
+    type: bundle.unit-test
+    platform: macOS
+    sources:
+      - path: Tests
+    dependencies:
+      - target: SetecUI
+    settings:
+      base:
+        PRODUCT_BUNDLE_IDENTIFIER: org.meltforce.setec-ui.tests
+        GENERATE_INFOPLIST_FILE: YES
+        # The app's product name carries spaces; xcodegen derives TEST_HOST from
+        # the target name, so it is set here explicitly.
+        TEST_HOST: "$(BUILT_PRODUCTS_DIR)/Setec UI.app/Contents/MacOS/Setec UI"
+        BUNDLE_LOADER: "$(TEST_HOST)"
+
+  SetecUIUITests:
+    type: bundle.ui-testing
+    platform: macOS
+    sources:
+      - path: UITests
+    dependencies:
+      - target: SetecUI
+    settings:
+      base:
+        PRODUCT_BUNDLE_IDENTIFIER: org.meltforce.setec-ui.uitests
+        GENERATE_INFOPLIST_FILE: YES
+        TEST_TARGET_NAME: SetecUI
+
+schemes:
+  SetecUI:
+    build:
+      targets:
+        SetecUI: all
+        SetecUITests: [test]
+        SetecUIUITests: [test]
+    run:
+      config: Debug
+    test:
+      config: Debug
+      targets:
+        - SetecUITests
+        - SetecUIUITests
+    archive:
+      config: Release

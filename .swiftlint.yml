@@ -1,0 +1,25 @@
+included:
+  - App
+  - Services
+  - Tests
+  - UITests
+excluded:
+  - .build
+  - DerivedData
+disabled_rules:
+  - trailing_comma
+  - todo
+opt_in_rules:
+  - empty_count
+  - closure_spacing
+  - first_where
+line_length:
+  warning: 120
+  error: 160
+identifier_name:
+  min_length: 2
+  excluded: [id, x, y, at]
+type_body_length:
+  warning: 300
+file_length:
+  warning: 500

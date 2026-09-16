@@ -1,0 +1,750 @@
+<!DOCTYPE html>
+<html>
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<script src="./support.js"></script>
+</head>
+<body>
+<x-dc>
+<helmet>
+<style>
+  body { margin: 0; background: #d9dade; font-family: -apple-system, "Helvetica Neue", Helvetica, sans-serif; -webkit-font-smoothing: antialiased; }
+  ::selection { background: #c9d8fb; }
+  a { color: #3c6df0; text-decoration: none; }
+  a:hover { color: #2a55c9; }
+  input, textarea { font-family: inherit; }
+  @keyframes sheetIn { from { opacity: 0; transform: translateY(-12px) scale(.985); } to { opacity: 1; transform: none; } }
+  @keyframes veilIn { from { opacity: 0; } to { opacity: 1; } }
+</style>
+</helmet>
+<div style="min-height: 100vh; display: flex; align-items: flex-start; padding: 40px; background: radial-gradient(120% 120% at 20% 0%, #eceef3 0%, #cfd1d8 100%);">
+  <div style="width: 1280px; height: 800px; flex: none; margin: auto; position: relative; display: flex; flex-direction: column; border-radius: 12px; overflow: hidden; background: #ffffff; box-shadow: 0 30px 70px rgba(20,22,30,.35), 0 0 0 .5px rgba(0,0,0,.18);">
+
+    <div style="height: 52px; flex: none; display: flex; align-items: center; gap: 14px; padding: 0 16px; background: #eceef1; border-bottom: .5px solid #d3d5da;">
+      <div style="display: flex; gap: 8px; align-items: center;">
+        <div style="width: 12px; height: 12px; border-radius: 50%; background: #ec6a5e;"></div>
+        <div style="width: 12px; height: 12px; border-radius: 50%; background: #f4bf4f;"></div>
+        <div style="width: 12px; height: 12px; border-radius: 50%; background: #61c554;"></div>
+      </div>
+      <div style="width: 1px; height: 20px; background: #d8dade; margin-left: 6px;"></div>
+      <div style="display: flex; align-items: center; gap: 8px; padding: 4px 10px 4px 8px; border-radius: 6px; background: #ffffff; box-shadow: 0 0 0 .5px rgba(0,0,0,.12), 0 1px 1px rgba(0,0,0,.04);" style-hover="background:#f7f8fa">
+        <div style="width: 7px; height: 7px; border-radius: 50%; background: #3fae63;"></div>
+        <div style="font-size: 12.5px; color: #26272b; font-weight: 500;">secrets.tail9a2f.ts.net</div>
+        <div style="font-size: 11px; color: #9a9ba0;">▾</div>
+      </div>
+      <div style="font-size: 12px; color: #8a8b91;">Signed in as <span style="color:#5d5e64">dana@tail9a2f</span></div>
+      <div style="flex: 1;"></div>
+      <div style="display: flex; gap: 8px;">
+        <div style="display: flex; align-items: center; gap: 6px; height: 28px; padding: 0 11px; border-radius: 6px; font-size: 12.5px; color: #26272b; background: #ffffff; box-shadow: 0 0 0 .5px rgba(0,0,0,.12), 0 1px 1px rgba(0,0,0,.04); cursor: default;" style-hover="background:#f7f8fa">Refresh</div>
+        <div onClick="{{ onOpenSheet }}" style="display: flex; align-items: center; gap: 6px; height: 28px; padding: 0 12px; border-radius: 6px; font-size: 12.5px; font-weight: 500; color: #ffffff; background: #3c6df0; box-shadow: 0 1px 2px rgba(60,109,240,.35); cursor: default;" style-hover="background:#3462dd"><span style="font-size:14px; line-height:1">+</span> New secret</div>
+      </div>
+    </div>
+
+    <div style="flex: 1; display: flex; min-height: 0;">
+
+      <div style="width: 232px; flex: none; display: flex; flex-direction: column; background: #f3f4f7; border-right: .5px solid #dcdee3;">
+        <div style="padding: 12px 12px 8px;">
+          <div style="display: flex; align-items: center; gap: 6px; height: 28px; padding: 0 9px; border-radius: 7px; background: #ffffff; box-shadow: 0 0 0 .5px rgba(0,0,0,.1) inset;">
+            <div style="width: 11px; height: 11px; border-radius: 50%; border: 1.5px solid #a9aab0;"></div>
+            <input value="{{ query }}" onChange="{{ onQuery }}" placeholder="Search secrets" style="border: 0; outline: 0; background: transparent; font-size: 12.5px; color: #26272b; width: 100%;" />
+          </div>
+        </div>
+        <div style="padding: 4px 8px 10px; overflow: auto; flex: 1;">
+          <div style="font-size: 10.5px; letter-spacing: .06em; text-transform: uppercase; color: #9a9ba0; padding: 8px 8px 6px; font-weight: 600;">Namespaces</div>
+          <sc-for list="{{ tree }}" as="node" hint-placeholder-count="4">
+            <div onClick="{{ node.onSelect }}" style="{{ node.rowStyle }}">
+              <div style="width: 14px; text-align: center; font-size: 9px; color: #9a9ba0;">{{ node.glyph }}</div>
+              <div style="flex: 1; font-size: 12.5px;">{{ node.label }}</div>
+              <div style="font-size: 11px; color: #a3a4aa; font-variant-numeric: tabular-nums;">{{ node.count }}</div>
+            </div>
+          </sc-for>
+          <div style="font-size: 10.5px; letter-spacing: .06em; text-transform: uppercase; color: #9a9ba0; padding: 18px 8px 6px; font-weight: 600;">Smart filters</div>
+          <sc-for list="{{ filters }}" as="f" hint-placeholder-count="3">
+            <div onClick="{{ f.onSelect }}" style="{{ f.rowStyle }}">
+              <div style="width: 14px; text-align: center; font-size: 10px; color: {{ f.dot }};">●</div>
+              <div style="flex: 1; font-size: 12.5px;">{{ f.label }}</div>
+              <div style="font-size: 11px; color: #a3a4aa; font-variant-numeric: tabular-nums;">{{ f.count }}</div>
+            </div>
+          </sc-for>
+        </div>
+        <div style="padding: 10px 14px; border-top: .5px solid #dcdee3; font-size: 11px; color: #9a9ba0; display: flex; justify-content: space-between;">
+          <span>{{ totalLabel }}</span><span>Synced 40s ago</span>
+        </div>
+      </div>
+
+      <div style="width: 316px; flex: none; display: flex; flex-direction: column; background: #fbfbfc; border-right: .5px solid #e4e6ea; min-height: 0;">
+        <div style="height: 38px; flex: none; display: flex; align-items: center; gap: 8px; padding: 0 14px; border-bottom: .5px solid #e9ebee;">
+          <div style="font-size: 12.5px; font-weight: 600; color: #26272b;">{{ listTitle }}</div>
+          <div style="flex: 1;"></div>
+          <div style="font-size: 11.5px; color: #9a9ba0;">Name ▾</div>
+        </div>
+        <div style="overflow: auto; flex: 1; padding: 6px;">
+          <sc-for list="{{ visible }}" as="s" hint-placeholder-count="8">
+            <div onClick="{{ s.onSelect }}" style="{{ s.cardStyle }}">
+              <div style="display: flex; align-items: baseline; gap: 6px;">
+                <div style="font-size: 12px; color: #9a9ba0; font-family: ui-monospace, 'SF Mono', Menlo, monospace;">{{ s.prefix }}</div>
+                <div style="font-size: 13px; font-weight: 600; color: #1d1e22; font-family: ui-monospace, 'SF Mono', Menlo, monospace;">{{ s.leaf }}</div>
+              </div>
+              <div style="display: flex; align-items: center; gap: 8px; margin-top: 5px;">
+                <div style="font-size: 11px; padding: 1px 6px; border-radius: 4px; background: #eef1f6; color: #5d6068; font-variant-numeric: tabular-nums;">v{{ s.active }}</div>
+                <div style="font-size: 11.5px; color: #9a9ba0;">{{ s.age }}</div>
+                <div style="flex: 1;"></div>
+                <div style="font-size: 11px; color: {{ s.noteColor }};">{{ s.note }}</div>
+              </div>
+            </div>
+          </sc-for>
+        </div>
+      </div>
+
+      <div style="flex: 1; min-width: 0; display: flex; flex-direction: column; background: #ffffff;">
+        <div style="padding: 20px 26px 16px; border-bottom: .5px solid #eaecef;">
+          <div style="display: flex; align-items: flex-start; gap: 16px;">
+            <div style="min-width: 0;">
+              <div style="font-size: 12px; color: #9a9ba0; font-family: ui-monospace, 'SF Mono', Menlo, monospace;">{{ sel.prefix }}</div>
+              <div style="font-size: 21px; font-weight: 650; color: #16171a; font-family: ui-monospace, 'SF Mono', Menlo, monospace; letter-spacing: -.01em;">{{ sel.leaf }}</div>
+              <div style="display: flex; align-items: center; gap: 10px; margin-top: 8px; font-size: 12px; color: #8a8b91;">
+                <span>Active: <span style="color:#3c6df0; font-weight:600">v{{ sel.active }}</span></span>
+                <span>·</span><span>{{ sel.versionCount }} versions</span>
+                <span>·</span><span>updated {{ sel.age }} by {{ sel.author }}</span>
+              </div>
+            </div>
+            <div style="flex: 1;"></div>
+            <div style="display: flex; gap: 8px; flex: none;">
+              <div onClick="{{ onCopy }}" style="display: flex; align-items: center; height: 30px; padding: 0 13px; border-radius: 7px; font-size: 12.5px; font-weight: 500; color: #ffffff; background: #3c6df0; cursor: default; box-shadow: 0 1px 2px rgba(60,109,240,.3);" style-hover="background:#3462dd">{{ copyLabel }}</div>
+              <div onClick="{{ onOpenVer }}" style="display: flex; align-items: center; height: 30px; padding: 0 13px; border-radius: 7px; font-size: 12.5px; color: #26272b; background: #ffffff; cursor: default; box-shadow: 0 0 0 .5px rgba(0,0,0,.14), 0 1px 1px rgba(0,0,0,.04);" style-hover="background:#f7f8fa">New version …</div>
+              <div onClick="{{ onOpenDel }}" style="display: flex; align-items: center; justify-content: center; width: 30px; height: 30px; border-radius: 7px; font-size: 14px; color: #5d5e64; background: #ffffff; cursor: default; box-shadow: 0 0 0 .5px rgba(0,0,0,.14), 0 1px 1px rgba(0,0,0,.04);" style-hover="background:#f7f8fa">···</div>
+            </div>
+          </div>
+        </div>
+
+        <div style="flex: 1; overflow: auto; padding: 20px 26px 28px; display: flex; flex-direction: column; gap: 22px;">
+
+          <div>
+            <div style="display: flex; align-items: center; gap: 10px; margin-bottom: 9px;">
+              <div style="font-size: 11px; letter-spacing: .06em; text-transform: uppercase; color: #9a9ba0; font-weight: 600;">Value of active version</div>
+              <div style="flex: 1; height: .5px; background: #ebedf0;"></div>
+              <div onClick="{{ onReveal }}" style="font-size: 12px; color: #3c6df0; cursor: default;" style-hover="color:#2a55c9">{{ revealLabel }}</div>
+            </div>
+            <div style="border-radius: 10px; background: #fafbfc; box-shadow: 0 0 0 .5px #e3e5ea inset; padding: 14px 16px; display: flex; flex-direction: column; gap: 10px;">
+              <div style="font-family: ui-monospace, 'SF Mono', Menlo, monospace; font-size: 13.5px; color: {{ valueColor }}; word-break: break-all; line-height: 1.5;">{{ valueText }}</div>
+              <div style="display: flex; align-items: center; gap: 10px; font-size: 11.5px; color: #9a9ba0;">
+                <span>{{ valueMeta }}</span>
+                <div style="flex: 1;"></div>
+                <span>{{ revealHint }}</span>
+              </div>
+            </div>
+          </div>
+
+          <div>
+            <div style="display: flex; align-items: center; gap: 10px; margin-bottom: 9px;">
+              <div style="font-size: 11px; letter-spacing: .06em; text-transform: uppercase; color: #9a9ba0; font-weight: 600;">Versions</div>
+              <div style="flex: 1; height: .5px; background: #ebedf0;"></div>
+              <div style="font-size: 12px; color: #9a9ba0;">Roll back by activating</div>
+            </div>
+            <div style="border-radius: 10px; overflow: hidden; box-shadow: 0 0 0 .5px #e3e5ea;">
+              <sc-for list="{{ versions }}" as="v" hint-placeholder-count="4">
+                <div style="{{ v.rowStyle }}">
+                  <div style="width: 52px; font-family: ui-monospace, 'SF Mono', Menlo, monospace; font-size: 13px; font-weight: 600; color: #26272b; font-variant-numeric: tabular-nums;">v{{ v.n }}</div>
+                  <div style="width: 78px;">{{ v.badge }}</div>
+                  <div style="flex: 1; min-width: 0; font-size: 12.5px; color: #5d6068;">{{ v.when }} · {{ v.who }}</div>
+                  <div style="font-size: 12px; color: #9a9ba0; font-family: ui-monospace, 'SF Mono', Menlo, monospace;">{{ v.digest }}</div>
+                  <div style="width: 150px; display: flex; justify-content: flex-end; gap: 8px;">{{ v.actions }}</div>
+                </div>
+              </sc-for>
+            </div>
+          </div>
+
+          <div>
+            <div style="display: flex; align-items: center; gap: 10px; margin-bottom: 9px;">
+              <div style="font-size: 11px; letter-spacing: .06em; text-transform: uppercase; color: #9a9ba0; font-weight: 600;">Access in {{ aclScope }}</div>
+              <div style="flex: 1; height: .5px; background: #ebedf0;"></div>
+              <div style="font-size: 12px; color: #9a9ba0;">{{ aclSource }}</div>
+            </div>
+            <div style="border-radius: 10px; overflow: hidden; box-shadow: 0 0 0 .5px #e3e5ea;">
+              <div style="display: flex; align-items: center; gap: 0; padding: 8px 14px; background: #fafbfc; border-bottom: .5px solid #e9ebee;">
+                <div style="flex: 1; min-width: 0; font-size: 11px; letter-spacing: .04em; text-transform: uppercase; color: #9a9ba0; font-weight: 600;">Principal</div>
+                <sc-for list="{{ capCols }}" as="c" hint-placeholder-count="6">
+                  <div style="width: 74px; text-align: center; font-size: 10.5px; color: #9a9ba0; font-family: ui-monospace, 'SF Mono', Menlo, monospace;">{{ c.short }}</div>
+                </sc-for>
+              </div>
+              <sc-for list="{{ grants }}" as="g" hint-placeholder-count="5">
+                <div style="{{ g.rowStyle }}">
+                  <div style="flex: 1; min-width: 0; display: flex; align-items: baseline; gap: 8px;">
+                    <div style="font-family: ui-monospace, 'SF Mono', Menlo, monospace; font-size: 12.5px; color: #26272b;">{{ g.principal }}</div>
+                    <div style="font-size: 11.5px; color: #9a9ba0;">{{ g.note }}</div>
+                  </div>
+                  <sc-for list="{{ g.cells }}" as="c" hint-placeholder-count="6">
+                    <div style="{{ c.cellStyle }}">{{ c.mark }}</div>
+                  </sc-for>
+                </div>
+              </sc-for>
+            </div>
+          </div>
+
+        </div>
+
+        <div style="height: 30px; flex: none; display: flex; align-items: center; gap: 10px; padding: 0 26px; border-top: .5px solid #eaecef; background: #fbfbfc; font-size: 11.5px; color: #9a9ba0;">
+          <span>{{ statusLine }}</span>
+          <div style="flex: 1;"></div>
+          <span>Values are never cached on disk</span>
+        </div>
+      </div>
+    </div>
+
+    <sc-if value="{{ delOpen }}" hint-placeholder-val="{{ false }}">
+      <div style="position: absolute; inset: 0; display: flex; justify-content: center; align-items: flex-start; background: rgba(28,30,38,.28); backdrop-filter: blur(1.5px); animation: veilIn .14s ease-out;">
+        <div onClick="{{ onCloseDel }}" style="position: absolute; inset: 0;"></div>
+        <div style="position: relative; width: 560px; margin-top: 76px; border-radius: 12px; background: #ffffff; box-shadow: 0 24px 60px rgba(18,20,28,.34), 0 0 0 .5px rgba(0,0,0,.14); animation: sheetIn .18s cubic-bezier(.2,.8,.3,1); overflow: hidden;">
+
+          <div style="padding: 20px 24px 16px; border-bottom: .5px solid #f3e6e4; background: #fdf7f6;">
+            <div style="font-size: 16px; font-weight: 650; color: #8e2c21;">Delete secret</div>
+            <div style="font-size: 12.5px; color: #96635c; margin-top: 3px;">This cannot be undone. setec keeps no backup of deleted values.</div>
+          </div>
+
+          <div style="padding: 20px 24px; display: flex; flex-direction: column; gap: 18px;">
+
+            <div style="display: flex; flex-direction: column; gap: 9px;">
+              <div style="font-size: 12px; font-weight: 600; color: #3a3b40;">This removes</div>
+              <div style="display: flex; flex-direction: column; gap: 6px;">
+                <sc-for list="{{ delFacts }}" as="f" hint-placeholder-count="3">
+                  <div style="display: flex; align-items: baseline; gap: 9px;">
+                    <div style="flex: none; font-size: 9px; color: #c9a09a; line-height: 1.7;">●</div>
+                    <div style="font-size: 12.5px; color: #4a4b51; line-height: 1.5;">{{ f.label }}</div>
+                  </div>
+                </sc-for>
+              </div>
+            </div>
+
+            <div style="display: flex; flex-direction: column; gap: 8px;">
+              <div style="font-size: 12px; font-weight: 600; color: #3a3b40;">To confirm, type the secret name</div>
+              <div style="display: flex; align-items: center; gap: 10px; padding: 9px 11px; border-radius: 8px; background: #f4f6f9; box-shadow: 0 0 0 .5px #e4e6ea;">
+                <div style="flex: 1; min-width: 0; font-family: ui-monospace, 'SF Mono', Menlo, monospace; font-size: 13px; color: #26272b; word-break: break-all; user-select: all;">{{ delName }}</div>
+                <div onClick="{{ onDelCopy }}" style="flex: none; padding: 3px 9px; border-radius: 5px; font-size: 11.5px; color: #26272b; background: #ffffff; cursor: default; box-shadow: 0 0 0 .5px rgba(0,0,0,.13);" style-hover="background:#fbfbfc">{{ delCopyLabel }}</div>
+              </div>
+              <div style="display: flex; align-items: center; height: 34px; padding: 0 11px; border-radius: 8px; background: #ffffff; box-shadow: 0 0 0 1px {{ confirmRing }};">
+                <input value="{{ confirmName }}" onChange="{{ onConfirmName }}" placeholder="Paste or type the name" spellcheck="false" style="border: 0; outline: 0; background: transparent; width: 100%; font-family: ui-monospace, 'SF Mono', Menlo, monospace; font-size: 13px; color: #16171a;" />
+              </div>
+              <div style="font-size: 11.5px; color: {{ confirmHintColor }};">{{ confirmHint }}</div>
+            </div>
+
+            <div style="display: flex; align-items: center; gap: 9px; padding: 10px 13px; border-radius: 8px; background: #fbf6f5; box-shadow: 0 0 0 .5px #f0dfdc;">
+              <div style="font-family: ui-monospace, 'SF Mono', Menlo, monospace; font-size: 11.5px; color: #98463a;">POST /api/delete</div>
+              <div style="flex: 1;"></div>
+              <div style="font-size: 11.5px; color: #ab7a72;">1 request</div>
+            </div>
+
+          </div>
+
+          <div style="display: flex; align-items: center; gap: 10px; padding: 14px 24px; border-top: .5px solid #eef0f3; background: #fbfbfc;">
+            <div style="font-size: 11.5px; color: #9a9ba0;">To remove a single version instead, use the version list</div>
+            <div style="flex: 1;"></div>
+            <div onClick="{{ onCloseDel }}" style="display: flex; align-items: center; height: 30px; padding: 0 14px; border-radius: 7px; font-size: 12.5px; color: #26272b; background: #ffffff; cursor: default; box-shadow: 0 0 0 .5px rgba(0,0,0,.14), 0 1px 1px rgba(0,0,0,.04);" style-hover="background:#f4f5f7">Cancel</div>
+            <div onClick="{{ onDelConfirm }}" style="{{ delButtonStyle }}">Delete secret</div>
+          </div>
+        </div>
+      </div>
+    </sc-if>
+
+    <sc-if value="{{ verOpen }}" hint-placeholder-val="{{ false }}">
+      <div style="position: absolute; inset: 0; display: flex; justify-content: center; align-items: flex-start; background: rgba(28,30,38,.28); backdrop-filter: blur(1.5px); animation: veilIn .14s ease-out;">
+        <div onClick="{{ onCloseVer }}" style="position: absolute; inset: 0;"></div>
+        <div style="position: relative; width: 620px; margin-top: 54px; border-radius: 12px; background: #ffffff; box-shadow: 0 24px 60px rgba(18,20,28,.34), 0 0 0 .5px rgba(0,0,0,.14); animation: sheetIn .18s cubic-bezier(.2,.8,.3,1); overflow: hidden;">
+
+          <div style="padding: 20px 24px 16px; border-bottom: .5px solid #eef0f3;">
+            <div style="display: flex; align-items: center; gap: 10px;">
+              <div style="font-size: 16px; font-weight: 650; color: #16171a;">New version</div>
+              <div style="font-size: 12px; font-weight: 600; padding: 2px 7px; border-radius: 5px; color: #2f56b5; background: #eaf0fe; font-variant-numeric: tabular-nums;">{{ verNextLabel }}</div>
+            </div>
+            <div style="margin-top: 6px; font-family: ui-monospace, 'SF Mono', Menlo, monospace; font-size: 12.5px; color: #26272b;">{{ verName }}</div>
+            <div style="font-size: 12px; color: #8a8b91; margin-top: 3px;">{{ verHeadNote }}</div>
+          </div>
+
+          <div style="padding: 20px 24px; display: flex; flex-direction: column; gap: 18px;">
+
+            <div style="display: flex; flex-direction: column; gap: 7px;">
+              <div style="display: flex; align-items: center; gap: 10px;">
+                <div style="font-size: 12px; font-weight: 600; color: #3a3b40;">New value</div>
+                <div style="flex: 1;"></div>
+                <div onClick="{{ onVerGenerate }}" style="font-size: 12px; color: #3c6df0; cursor: default;" style-hover="color:#2a55c9">Generate</div>
+                <div style="width: .5px; height: 11px; background: #dcdee3;"></div>
+                <div onClick="{{ onVerCopyCurrent }}" style="font-size: 12px; color: #3c6df0; cursor: default;" style-hover="color:#2a55c9">Start from current</div>
+                <div style="width: .5px; height: 11px; background: #dcdee3;"></div>
+                <div onClick="{{ onToggleVerReveal }}" style="font-size: 12px; color: #3c6df0; cursor: default;" style-hover="color:#2a55c9">{{ verRevealLabel }}</div>
+              </div>
+              <div style="border-radius: 8px; background: #ffffff; box-shadow: 0 0 0 1px #d7dae0; padding: 10px 11px;">
+                <textarea value="{{ verValueShown }}" onChange="{{ onVerValue }}" placeholder="Paste or generate the rotated value" spellcheck="false" style="border: 0; outline: 0; resize: none; width: 100%; height: 66px; background: transparent; font-family: ui-monospace, 'SF Mono', Menlo, monospace; font-size: 13px; line-height: 1.5; color: #16171a; word-break: break-all;"></textarea>
+              </div>
+              <div style="display: flex; align-items: center; gap: 8px; font-size: 11.5px; color: #9a9ba0;">
+                <span>{{ verCount }}</span>
+                <div style="flex: 1;"></div>
+                <span>Never written to disk</span>
+              </div>
+            </div>
+
+            <div style="{{ verSameStyle }}">
+              <div style="font-size: 11px; color: #c08a2e;">●</div>
+              <div>{{ verSameHint }}</div>
+            </div>
+
+            <div style="display: flex; flex-direction: column; gap: 10px; padding: 14px 16px; border-radius: 10px; background: #fafbfc; box-shadow: 0 0 0 .5px #e8eaee;">
+              <div onClick="{{ onToggleVerActivate }}" style="display: flex; align-items: flex-start; gap: 11px; cursor: default;">
+                <div style="{{ verActivateTrack }}"><div style="{{ verActivateKnob }}"></div></div>
+                <div style="min-width: 0;">
+                  <div style="font-size: 12.5px; font-weight: 550; color: #26272b;">Activate on create</div>
+                  <div style="font-size: 11.5px; color: #8a8b91; margin-top: 2px;">{{ verActivateNote }}</div>
+                </div>
+              </div>
+            </div>
+
+            <div style="display: flex; align-items: center; gap: 9px; padding: 10px 13px; border-radius: 8px; background: #f5f8ff; box-shadow: 0 0 0 .5px #dce6fb;">
+              <div style="font-family: ui-monospace, 'SF Mono', Menlo, monospace; font-size: 11.5px; color: #2f56b5;">{{ verApiCall }}</div>
+              <div style="flex: 1;"></div>
+              <div style="font-size: 11.5px; color: #6f83b8;">{{ verApiNote }}</div>
+            </div>
+
+          </div>
+
+          <div style="display: flex; align-items: center; gap: 10px; padding: 14px 24px; border-top: .5px solid #eef0f3; background: #fbfbfc;">
+            <div style="font-size: 11.5px; color: #9a9ba0;">{{ verFooterHint }}</div>
+            <div style="flex: 1;"></div>
+            <div onClick="{{ onCloseVer }}" style="display: flex; align-items: center; height: 30px; padding: 0 14px; border-radius: 7px; font-size: 12.5px; color: #26272b; background: #ffffff; cursor: default; box-shadow: 0 0 0 .5px rgba(0,0,0,.14), 0 1px 1px rgba(0,0,0,.04);" style-hover="background:#f4f5f7">Cancel</div>
+            <div onClick="{{ onVerCreate }}" style="{{ verCreateStyle }}">{{ verCreateLabel }}</div>
+          </div>
+        </div>
+      </div>
+    </sc-if>
+
+    <sc-if value="{{ sheetOpen }}" hint-placeholder-val="{{ false }}">
+      <div style="position: absolute; inset: 0; display: flex; justify-content: center; align-items: flex-start; background: rgba(28,30,38,.28); backdrop-filter: blur(1.5px); animation: veilIn .14s ease-out;">
+        <div onClick="{{ onCloseSheet }}" style="position: absolute; inset: 0;"></div>
+        <div style="position: relative; width: 620px; margin-top: 54px; border-radius: 12px; background: #ffffff; box-shadow: 0 24px 60px rgba(18,20,28,.34), 0 0 0 .5px rgba(0,0,0,.14); animation: sheetIn .18s cubic-bezier(.2,.8,.3,1); overflow: hidden;">
+
+          <div style="padding: 20px 24px 16px; border-bottom: .5px solid #eef0f3;">
+            <div style="font-size: 16px; font-weight: 650; color: #16171a;">New secret</div>
+            <div style="font-size: 12.5px; color: #8a8b91; margin-top: 3px;">Creates the secret and its first version on secrets.tail9a2f.ts.net.</div>
+          </div>
+
+          <div style="padding: 20px 24px; display: flex; flex-direction: column; gap: 20px;">
+
+            <div style="display: flex; flex-direction: column; gap: 7px;">
+              <div style="font-size: 12px; font-weight: 600; color: #3a3b40;">Name</div>
+              <div style="display: flex; gap: 8px;">
+                <div style="flex: 1; position: relative;">
+                  <div style="display: flex; align-items: center; height: 32px; padding: 0 11px; border-radius: 7px; background: #ffffff; box-shadow: 0 0 0 1px {{ nameRing }};">
+                    <div style="position: relative; flex: 1; min-width: 0;">
+                      <div style="position: absolute; inset: 0; display: flex; align-items: center; font-family: ui-monospace, 'SF Mono', Menlo, monospace; font-size: 13px; white-space: pre; pointer-events: none;"><span style="color: transparent;">{{ newFullPath }}</span><span style="color: #b9bbc1;">{{ ghost }}</span></div>
+                      <input value="{{ newFullPath }}" onChange="{{ onNewFullPath }}" onKeyDown="{{ onNameKey }}" placeholder="prod/service/key-name" spellcheck="false" style="position: relative; border: 0; outline: 0; background: transparent; width: 100%; font-family: ui-monospace, 'SF Mono', Menlo, monospace; font-size: 13px; color: #16171a;" />
+                    </div>
+                    <div style="{{ tabHintStyle }}">tab</div>
+                  </div>
+                  <div style="{{ acStyle }}">
+                    <sc-for list="{{ suggestions }}" as="s" hint-placeholder-count="0">
+                      <div onClick="{{ s.onPick }}" style="{{ s.rowStyle }}" style-hover="background:#f4f6f9">
+                        <div style="flex: 1; min-width: 0; font-family: ui-monospace, 'SF Mono', Menlo, monospace; font-size: 12.5px; color: #26272b;">{{ s.label }}</div>
+                        <div style="font-size: 11.5px; color: #9a9ba0;">{{ s.count }}</div>
+                      </div>
+                    </sc-for>
+                  </div>
+                </div>
+              </div>
+              <div style="display: flex; align-items: center; gap: 8px; min-height: 16px;">
+                <div style="font-size: 11.5px; color: {{ nameHintColor }};">{{ nameHint }}</div>
+                <div style="flex: 1;"></div>
+                <div style="font-size: 11.5px; color: #9a9ba0;">Slashes group secrets in the sidebar</div>
+              </div>
+              <div style="display: flex; flex-wrap: wrap; align-items: center; gap: 6px; margin-top: 3px;">
+                <div style="font-size: 11.5px; color: #9a9ba0; margin-right: 2px;">Groups:</div>
+                <sc-for list="{{ nsChips }}" as="n" hint-placeholder-count="4">
+                  <div onClick="{{ n.onPick }}" style="{{ n.chipStyle }}" style-hover="background:#eaf0fe">{{ n.label }}</div>
+                </sc-for>
+              </div>
+            </div>
+
+            <div style="display: flex; flex-direction: column; gap: 7px;">
+              <div style="display: flex; align-items: center; gap: 10px;">
+                <div style="font-size: 12px; font-weight: 600; color: #3a3b40;">Value</div>
+                <div style="flex: 1;"></div>
+                <div onClick="{{ onGenerate }}" style="font-size: 12px; color: #3c6df0; cursor: default;" style-hover="color:#2a55c9">Generate</div>
+                <div style="width: .5px; height: 11px; background: #dcdee3;"></div>
+                <div onClick="{{ onToggleNewReveal }}" style="font-size: 12px; color: #3c6df0; cursor: default;" style-hover="color:#2a55c9">{{ newRevealLabel }}</div>
+              </div>
+              <div style="border-radius: 8px; background: #ffffff; box-shadow: 0 0 0 1px #d7dae0; padding: 10px 11px;">
+                <textarea value="{{ newValueShown }}" onChange="{{ onNewValue }}" placeholder="Paste or type the secret value" spellcheck="false" style="border: 0; outline: 0; resize: none; width: 100%; height: 66px; background: transparent; font-family: ui-monospace, 'SF Mono', Menlo, monospace; font-size: 13px; line-height: 1.5; color: #16171a; word-break: break-all;"></textarea>
+              </div>
+              <div style="display: flex; align-items: center; gap: 8px; font-size: 11.5px; color: #9a9ba0;">
+                <span>{{ valueCount }}</span>
+                <div style="flex: 1;"></div>
+                <span>Encoded as base64 in transit · not written to disk</span>
+              </div>
+            </div>
+
+            <div style="display: flex; flex-direction: column; gap: 10px; padding: 14px 16px; border-radius: 10px; background: #fafbfc; box-shadow: 0 0 0 .5px #e8eaee;">
+              <div onClick="{{ onToggleActivate }}" style="display: flex; align-items: flex-start; gap: 11px; cursor: default;">
+                <div style="{{ activateTrack }}"><div style="{{ activateKnob }}"></div></div>
+                <div style="min-width: 0;">
+                  <div style="font-size: 12.5px; font-weight: 550; color: #26272b;">Activate immediately</div>
+                  <div style="font-size: 11.5px; color: #8a8b91; margin-top: 2px;">{{ activateNote }}</div>
+                </div>
+              </div>
+            </div>
+
+            <div style="display: flex; align-items: center; gap: 9px; padding: 10px 13px; border-radius: 8px; background: #f5f8ff; box-shadow: 0 0 0 .5px #dce6fb;">
+              <div style="font-family: ui-monospace, 'SF Mono', Menlo, monospace; font-size: 11.5px; color: #2f56b5;">{{ apiCall }}</div>
+              <div style="flex: 1;"></div>
+              <div style="font-size: 11.5px; color: #6f83b8;">{{ apiNote }}</div>
+            </div>
+
+          </div>
+
+          <div style="display: flex; align-items: center; gap: 10px; padding: 14px 24px; border-top: .5px solid #eef0f3; background: #fbfbfc;">
+            <div style="font-size: 11.5px; color: #9a9ba0;">{{ footerHint }}</div>
+            <div style="flex: 1;"></div>
+            <div onClick="{{ onCloseSheet }}" style="display: flex; align-items: center; height: 30px; padding: 0 14px; border-radius: 7px; font-size: 12.5px; color: #26272b; background: #ffffff; cursor: default; box-shadow: 0 0 0 .5px rgba(0,0,0,.14), 0 1px 1px rgba(0,0,0,.04);" style-hover="background:#f4f5f7">Cancel</div>
+            <div onClick="{{ onCreate }}" style="{{ createStyle }}">{{ createLabel }}</div>
+          </div>
+        </div>
+      </div>
+    </sc-if>
+  </div>
+</div>
+
+</x-dc>
+<script type="text/x-dc" data-dc-script data-props="{&quot;$preview&quot;:{&quot;width&quot;:1360,&quot;height&quot;:880}}">
+const SECRETS = [
+  { name: "prod/stripe/api-key", active: 12, age: "3 days ago", author: "ci-runner", value: "sk_live_51Nf8QpKbR2mLx7vTgAe4WqZ",
+    versions: [
+      { n: 12, when: "12 Sep 2026, 04:12", who: "ci-runner", digest: "9f21ac" },
+      { n: 11, when: "05 Sep 2026, 04:12", who: "ci-runner", digest: "3b77de" },
+      { n: 10, when: "29 Aug 2026, 04:11", who: "ci-runner", digest: "c40188" },
+      { n: 9,  when: "22 Aug 2026, 09:40", who: "dana", digest: "7ae502" }
+    ] },
+  { name: "prod/db/password", active: 7, age: "11 days ago", author: "dana", value: "Tr0ut-Harbor-Lantern-42",
+    versions: [
+      { n: 7, when: "05 Sep 2026, 17:02", who: "dana", digest: "112fb0" },
+      { n: 6, when: "14 Jul 2026, 11:20", who: "marek", digest: "8cc9a1" },
+      { n: 5, when: "02 Apr 2026, 08:55", who: "marek", digest: "01d7f4" }
+    ] },
+  { name: "prod/db/replica-password", active: 3, age: "2 months ago", author: "marek", value: "Replica-Quiet-Ember-08",
+    versions: [ { n: 3, when: "14 Jul 2026, 11:21", who: "marek", digest: "5d0b3e" }, { n: 2, when: "02 Apr 2026, 08:56", who: "marek", digest: "aa71c2" } ] },
+  { name: "prod/oauth/client-secret", active: 2, age: "5 months ago", author: "dana", value: "oauth-cs-Xn42-Pillar-Moss",
+    versions: [ { n: 2, when: "11 Apr 2026, 14:03", who: "dana", digest: "6f3c90" }, { n: 1, when: "30 Jan 2026, 10:00", who: "dana", digest: "e2b845" } ] },
+  { name: "prod/smtp/token", active: 4, age: "21 days ago", author: "ci-runner", value: "smtp-tok-7Hq2Lm9Rb",
+    versions: [ { n: 4, when: "26 Aug 2026, 04:10", who: "ci-runner", digest: "77aa01" }, { n: 3, when: "19 Aug 2026, 04:10", who: "ci-runner", digest: "2bd551" } ] },
+  { name: "staging/db/password", active: 5, age: "4 days ago", author: "marek", value: "staging-Willow-Crate-19",
+    versions: [ { n: 5, when: "12 Sep 2026, 13:44", who: "marek", digest: "4c8812" }, { n: 4, when: "01 Sep 2026, 09:02", who: "marek", digest: "b91e07" } ] },
+  { name: "staging/stripe/api-key", active: 9, age: "6 days ago", author: "ci-runner", value: "sk_test_51Nf8QpKbR2mLx7vT",
+    versions: [ { n: 9, when: "10 Sep 2026, 04:12", who: "ci-runner", digest: "ff2a67" } ] },
+  { name: "dev/db/password", active: 1, age: "8 months ago", author: "dana", value: "dev-password",
+    versions: [ { n: 1, when: "18 Jan 2026, 16:31", who: "dana", digest: "0091aa" } ] },
+  { name: "shared/slack/webhook", active: 3, age: "3 months ago", author: "dana", value: "https://hooks.slack.example/T02/B71/xQ9",
+    versions: [ { n: 3, when: "20 Jun 2026, 12:10", who: "dana", digest: "31ce88" }, { n: 2, when: "04 May 2026, 18:22", who: "dana", digest: "72a410" } ] },
+  { name: "shared/grafana/admin", active: 6, age: "34 days ago", author: "marek", value: "graf-Admin-Sparrow-77",
+    versions: [ { n: 6, when: "13 Aug 2026, 10:05", who: "marek", digest: "d4419b" }, { n: 5, when: "02 Jul 2026, 07:41", who: "marek", digest: "6610fe" } ] }
+];
+
+const ALL_CAPS = ["info", "get", "put", "create-version", "activate", "delete"];
+const CAP_SHORT = { get: "get", info: "info", put: "put", "create-version": "c-ver", activate: "activ", "delete": "del" };
+
+const ACLS = {
+  prod: [
+    { principal: "group:sre", note: "4 members", caps: ["info","get","put","create-version","activate","delete"] },
+    { principal: "dana@tail9a2f", note: "you", caps: ["info","get","put","create-version","activate","delete"] },
+    { principal: "marek@tail9a2f", note: "", caps: ["info","get","put","activate"] },
+    { principal: "tag:ci", note: "2 devices", caps: ["info","put"] },
+    { principal: "group:eng", note: "11 members", caps: ["info"] }
+  ],
+  staging: [
+    { principal: "group:eng", note: "11 members", caps: ["info","get","put","create-version","activate","delete"] },
+    { principal: "dana@tail9a2f", note: "you", caps: ["info","get","put","create-version","activate","delete"] },
+    { principal: "tag:ci", note: "2 devices", caps: ["info","get","put"] }
+  ],
+  dev: [
+    { principal: "group:eng", note: "11 members", caps: ["info","get","put","delete"] },
+    { principal: "dana@tail9a2f", note: "you", caps: ["info","get","put","create-version","activate","delete"] }
+  ],
+  shared: [
+    { principal: "group:sre", note: "4 members", caps: ["info","get","put","activate","delete"] },
+    { principal: "group:eng", note: "11 members", caps: ["info","get"] },
+    { principal: "dana@tail9a2f", note: "you", caps: ["info","get","put","create-version","activate","delete"] },
+    { principal: "tag:monitoring", note: "6 devices", caps: ["info","get"] }
+  ]
+};
+
+const ALPHABET = "abcdefghijkmnopqrstuvwxyzABCDEFGHJKLMNPQRSTUVWXYZ23456789-_";
+
+class Component extends DCLogic {
+  state = {
+    sel: "prod/stripe/api-key", scope: "prod", filter: null, query: "",
+    revealed: false, copied: false, activeOverride: {},
+    sheet: "delete", confirmName: "", confirmCopied: false,
+    newPath: "", newValue: "", newRevealed: true,
+    activateNow: true, pinVersion: false,
+    verValue: "", verRevealed: true, verActivate: true, verPin: false
+  };
+
+  activeOf(s) { return this.state.activeOverride[s.name] ?? s.active; }
+
+  pick(name) { this.setState({ sel: name, revealed: false, copied: false }); }
+
+  random(len) {
+    let out = "";
+    const buf = new Uint32Array(len);
+    window.crypto.getRandomValues(buf);
+    for (let i = 0; i < len; i++) out += ALPHABET[buf[i] % ALPHABET.length];
+    return out;
+  }
+
+  renderVals() {
+    const st = this.state;
+    const q = st.query.trim().toLowerCase();
+    const counts = {};
+    SECRETS.forEach(s => { const n = s.name.split("/")[0]; counts[n] = (counts[n] || 0) + 1; });
+
+    const rowStyle = (on) => "display:flex; align-items:center; gap:8px; padding:5px 8px; border-radius:6px; cursor:default; color:" +
+      (on ? "#ffffff" : "#3a3b40") + "; background:" + (on ? "#3c6df0" : "transparent") + "; font-weight:" + (on ? "550" : "450") + ";";
+
+    const isStale = (s) => /month/.test(s.age);
+    const stale = SECRETS.filter(isStale);
+    const single = SECRETS.filter(s => s.versions.length < 2);
+    const recent = SECRETS.filter(s => /day/.test(s.age) && parseInt(s.age, 10) <= 7);
+
+    const filterDefs = [
+      { key: "stale", label: "Rotation over 90 days", dot: "#d69016", count: stale.length },
+      { key: "single", label: "No rollback version", dot: "#b0b1b7", count: single.length },
+      { key: "recent", label: "Changed this week", dot: "#3fae63", count: recent.length }
+    ];
+    const filters = filterDefs.map(f => ({
+      ...f, rowStyle: rowStyle(st.filter === f.key),
+      onSelect: () => this.setState({ filter: st.filter === f.key ? null : f.key, scope: null })
+    }));
+
+    const namespaces = Object.keys(counts).sort((a, b) => a.localeCompare(b, "en"));
+    const tree = namespaces.map(n => ({
+      label: n + "/", count: counts[n], glyph: "▸",
+      rowStyle: rowStyle(st.scope === n && !st.filter),
+      onSelect: () => this.setState({ scope: n, filter: null })
+    }));
+
+    let pool = SECRETS;
+    if (st.filter === "stale") pool = stale;
+    else if (st.filter === "single") pool = single;
+    else if (st.filter === "recent") pool = recent;
+    else if (st.scope) pool = SECRETS.filter(s => s.name.split("/")[0] === st.scope);
+    if (q) pool = SECRETS.filter(s => s.name.toLowerCase().includes(q));
+
+    const split = (n) => { const i = n.lastIndexOf("/"); return [n.slice(0, i + 1), n.slice(i + 1)]; };
+
+    const visible = pool.map(s => {
+      const on = s.name === st.sel;
+      const [prefix, leaf] = split(s.name);
+      return {
+        prefix, leaf, active: this.activeOf(s), age: s.age,
+        note: isStale(s) ? "rotation due" : s.versions.length + " versions",
+        noteColor: isStale(s) ? "#c08a2e" : "#a3a4aa",
+        cardStyle: "padding:9px 11px; border-radius:8px; cursor:default; background:" + (on ? "#eaf0fe" : "transparent") +
+          "; box-shadow:" + (on ? "0 0 0 1px #c2d4fb" : "none") + "; margin-bottom:2px;",
+        onSelect: () => this.pick(s.name)
+      };
+    });
+
+    const sel = SECRETS.find(s => s.name === st.sel) || SECRETS[0];
+    const [prefix, leaf] = split(sel.name);
+    const active = this.activeOf(sel);
+    const ns = sel.name.split("/")[0];
+    const aclRows = ACLS[ns] || [];
+
+    const badge = (text, fg, bg) => React.createElement("div", { style: { display: "inline-flex", alignItems: "center", padding: "1px 7px", borderRadius: 4, fontSize: 11, fontWeight: 600, color: fg, background: bg } }, text);
+    const btn = (text, onClick, tone) => React.createElement("div", {
+      onClick,
+      style: {
+        display: "flex", alignItems: "center", height: 24, padding: "0 10px", borderRadius: 6, fontSize: 12, cursor: "default",
+        color: tone === "danger" ? "#b4342a" : "#26272b", background: "#ffffff",
+        boxShadow: "0 0 0 .5px rgba(0,0,0,.14), 0 1px 1px rgba(0,0,0,.04)"
+      }
+    }, text);
+
+    const versions = sel.versions.map((v, i) => ({
+      n: v.n, when: v.when, who: v.who, digest: v.digest,
+      badge: v.n === active ? badge("active", "#1f5bd6", "#e5edfd") : (i === 0 ? badge("latest", "#5d6068", "#eef0f3") : null),
+      actions: v.n === active
+        ? React.createElement("div", { style: { fontSize: 11.5, color: "#a3a4aa" } }, "in use")
+        : React.createElement("div", { style: { display: "flex", gap: 8 } },
+            btn("Activate", () => this.setState({ activeOverride: { ...st.activeOverride, [sel.name]: v.n }, revealed: false })),
+            btn("Delete", null, "danger")
+          ),
+      rowStyle: "display:flex; align-items:center; gap:12px; padding:10px 14px; background:" + (v.n === active ? "#f7f9fe" : "#ffffff") +
+        (i < sel.versions.length - 1 ? "; border-bottom:.5px solid #edeff2" : "")
+    }));
+
+    const masked = "•".repeat(Math.min(46, Math.max(18, sel.value.length)));
+    const nextN = Math.max.apply(null, sel.versions.map(v => v.n)) + 1;
+    const verSame = st.verValue.length > 0 && st.verValue === sel.value;
+    const delMatch = st.confirmName.trim() === sel.name;
+
+    const groupCounts = {};
+    SECRETS.forEach(s => {
+      const parts = s.name.split("/");
+      for (let i = 1; i < parts.length; i++) {
+        const p = parts.slice(0, i).join("/") + "/";
+        groupCounts[p] = (groupCounts[p] || 0) + 1;
+      }
+    });
+    const groups = Object.keys(groupCounts).sort((a, b) => a.localeCompare(b, "en"));
+
+    const fullName = st.newPath.trim().replace(/^\/+/, "");
+    const typed = st.newPath;
+    const matches = typed ? groups.filter(g => g.toLowerCase().startsWith(typed.toLowerCase()) && g.length > typed.length) : [];
+    const suggestions = matches.slice(0, 5).map(g => ({
+      label: g, count: groupCounts[g] + (groupCounts[g] === 1 ? " secret" : " secrets"),
+      rowStyle: "display:flex; align-items:center; gap:10px; padding:6px 11px; cursor:default; background:#ffffff" +
+        (g === matches[0] ? "" : "; border-top:.5px solid #f0f1f4"),
+      onPick: () => this.setState({ newPath: g })
+    }));
+    const ghost = matches.length ? matches[0].slice(typed.length) : "";
+    const exists = SECRETS.some(s => s.name === fullName);
+    const wellFormed = /^[a-z0-9][a-z0-9._\-\/]*[a-z0-9]$/.test(fullName);
+    const valid = wellFormed && !exists && st.newValue.length > 0;
+    const newNs = fullName.includes("/") ? fullName.slice(0, fullName.indexOf("/")) : "";
+    const nsIsNew = newNs && !namespaces.includes(newNs);
+    let nameHint = "Grouping is just part of the name — a new prefix creates a new group";
+    let nameHintColor = "#9a9ba0";
+    if (exists) { nameHint = "Already exists — use New version instead"; nameHintColor = "#b4342a"; }
+    else if (fullName && !wellFormed) { nameHint = "Lowercase, digits, . _ - and / only"; nameHintColor = "#b4342a"; }
+    else if (nsIsNew) { nameHint = "Creates new group " + newNs + "/"; nameHintColor = "#2f56b5"; }
+    else if (fullName) { nameHint = "Name is available"; nameHintColor = "#3d8f5c"; }
+
+    const track = (on) => "flex:none; width:32px; height:19px; border-radius:10px; padding:2px; display:flex; justify-content:" +
+      (on ? "flex-end" : "flex-start") + "; background:" + (on ? "#3c6df0" : "#d2d4da") + "; box-shadow:0 0 0 .5px rgba(0,0,0,.06) inset;";
+    const knob = "width:15px; height:15px; border-radius:50%; background:#ffffff; box-shadow:0 1px 2px rgba(0,0,0,.2);";
+
+    return {
+      query: st.query,
+      onQuery: (e) => this.setState({ query: e.target.value }),
+      tree, filters, visible, versions,
+      totalLabel: SECRETS.length + " secrets",
+      listTitle: q ? "Search: " + st.query : (st.filter ? (filterDefs.find(f => f.key === st.filter) || {}).label : (st.scope || "All") + "/"),
+      sel: { prefix, leaf, active, versionCount: sel.versions.length, age: sel.age, author: sel.author },
+      copyLabel: st.copied ? "Copied ✓" : "Copy value",
+      onCopy: () => { this.setState({ copied: true }); clearTimeout(this._t); this._t = setTimeout(() => this.setState({ copied: false }), 1800); },
+      onReveal: () => this.setState({ revealed: !st.revealed }),
+      revealLabel: st.revealed ? "Hide" : "Reveal",
+      valueText: st.revealed ? sel.value : masked,
+      valueColor: st.revealed ? "#16171a" : "#b8b9be",
+      valueMeta: "v" + active + " · " + sel.value.length + " characters · base64 in transit",
+      revealHint: st.revealed ? "Hides again in 20s" : "Revealing performs a get request",
+      aclScope: ns + "/*",
+      aclSource: aclRows.length + " rules from the tailnet policy",
+      capCols: ALL_CAPS.map(c => ({ short: CAP_SHORT[c] })),
+      grants: aclRows.map((g, i) => ({
+        principal: g.principal, note: g.note,
+        cells: ALL_CAPS.map(c => {
+          const on = g.caps.includes(c);
+          return { mark: on ? "●" : "–", cellStyle: "width:74px; text-align:center; font-size:" + (on ? "11px" : "12px") + "; color:" + (on ? "#3fae63" : "#d3d4d9") + ";" };
+        }),
+        rowStyle: "display:flex; align-items:center; padding:9px 14px; background:" + (g.note === "you" ? "#f7f9fe" : "#ffffff") +
+          (i < aclRows.length - 1 ? "; border-bottom:.5px solid #edeff2" : "")
+      })),
+      statusLine: "Last read today 09:41 · get " + sel.name,
+
+      sheetOpen: st.sheet === "new",
+      onOpenSheet: () => this.setState({ sheet: "new" }),
+      onCloseSheet: () => this.setState({ sheet: null }),
+      verOpen: st.sheet === "version",
+      onOpenVer: () => this.setState({ sheet: "version", verValue: "", verRevealed: true }),
+      onCloseVer: () => this.setState({ sheet: null }),
+      verName: sel.name,
+      verHeadNote: "Current active version is v" + active + ", set " + sel.age + " by " + sel.author + ".",
+      verNextLabel: "v" + nextN,
+      verValueShown: st.verRevealed ? st.verValue : "•".repeat(st.verValue.length),
+      onVerValue: (e) => this.setState({ verValue: e.target.value, verRevealed: true }),
+      onToggleVerReveal: () => this.setState({ verRevealed: !st.verRevealed }),
+      verRevealLabel: st.verRevealed ? "Hide" : "Reveal",
+      onVerGenerate: () => this.setState({ verValue: this.random(sel.value.length > 24 ? sel.value.length : 32), verRevealed: true }),
+      onVerCopyCurrent: () => this.setState({ verValue: sel.value, verRevealed: true }),
+      verCount: st.verValue ? st.verValue.length + " characters · was " + sel.value.length : "Empty · current value is " + sel.value.length + " characters",
+      verSameHint: verSame ? "Identical to v" + active + " — this would create a duplicate version" : "",
+      verSameStyle: verSame
+        ? "display:flex; align-items:center; gap:8px; padding:9px 13px; border-radius:8px; font-size:11.5px; color:#8a5a12; background:#fdf6e7; box-shadow:0 0 0 .5px #f0e0b8;"
+        : "display:none;",
+      verActivateTrack: track(st.verActivate),
+      verActivateKnob: knob,
+      verActivateNote: st.verActivate
+        ? "v" + nextN + " becomes active — consumers pick it up on their next fetch."
+        : "Stored alongside v" + active 
+          + ", which stays active until you switch.",
+      onToggleVerActivate: () => this.setState({ verActivate: !st.verActivate }),
+      verApiCall: "POST /api/put" + (st.verActivate ? " → POST /api/activate" : ""),
+      verApiNote: st.verActivate ? "2 requests" : "1 request",
+      verFooterHint: st.verValue ? (st.verActivate ? "Previous version stays available for rollback" : "Activate later from the version list") : "Add a value",
+      verCreateStyle: "display:flex; align-items:center; height:30px; padding:0 15px; border-radius:7px; font-size:12.5px; font-weight:500; cursor:default; color:#ffffff; background:" +
+        (st.verValue ? "#3c6df0" : "#b9c8ef") + "; box-shadow:" + (st.verValue ? "0 1px 2px rgba(60,109,240,.3)" : "none") + ";",
+      verCreateLabel: st.verActivate ? "Create and activate" : "Create version",
+      onVerCreate: () => { if (st.verValue) this.setState({ sheet: null, verValue: "" }); },
+
+      delOpen: st.sheet === "delete",
+      onOpenDel: () => this.setState({ sheet: "delete", confirmName: "", confirmCopied: false }),
+      onCloseDel: () => this.setState({ sheet: null, confirmName: "" }),
+      delName: sel.name,
+      delCopyLabel: st.confirmCopied ? "Copied" : "Copy",
+      onDelCopy: () => { this.setState({ confirmCopied: true }); clearTimeout(this._c); this._c = setTimeout(() => this.setState({ confirmCopied: false }), 1600); },
+      delFacts: [
+        { label: sel.versions.length + (sel.versions.length === 1 ? " version" : " versions") + ", including the active v" + active },
+        { label: "Any client still fetching this name starts failing immediately" },
+        { label: "The name becomes free again — deleted values cannot be restored" }
+      ],
+      confirmName: st.confirmName,
+      onConfirmName: (e) => this.setState({ confirmName: e.target.value }),
+      confirmRing: st.confirmName.length === 0 ? "#d7dae0" : (delMatch ? "#e0a9a2" : "#e6e8ec"),
+      confirmHint: st.confirmName.length === 0
+        ? "Type the full name to enable deletion"
+        : (delMatch ? "Name matches" : "Does not match yet"),
+      confirmHintColor: delMatch ? "#a8362b" : "#9a9ba0",
+      delButtonStyle: "display:flex; align-items:center; height:30px; padding:0 15px; border-radius:7px; font-size:12.5px; font-weight:500; cursor:default; color:#ffffff; background:" +
+        (delMatch ? "#c0392b" : "#e3b6b0") + "; box-shadow:" + (delMatch ? "0 1px 2px rgba(192,57,43,.3)" : "none") + ";",
+      onDelConfirm: () => { if (delMatch) this.setState({ sheet: null, confirmName: "" }); },
+      newFullPath: st.newPath,
+      onNewFullPath: (e) => this.setState({ newPath: e.target.value }),
+      onNameKey: (e) => {
+        if ((e.key === "Tab" || e.key === "ArrowRight") && ghost) { e.preventDefault(); this.setState({ newPath: matches[0] }); }
+      },
+      ghost,
+      suggestions,
+      acStyle: suggestions.length
+        ? "position:absolute; top:37px; left:0; right:0; z-index:5; border-radius:8px; overflow:hidden; background:#ffffff; box-shadow:0 10px 24px rgba(20,22,30,.16), 0 0 0 .5px rgba(0,0,0,.12);"
+        : "display:none;",
+      tabHintStyle: ghost
+        ? "flex:none; margin-left:8px; padding:1px 5px; border-radius:4px; font-size:10.5px; color:#8a8b91; background:#f1f2f5; box-shadow:0 0 0 .5px #e4e6ea;"
+        : "display:none;",
+      nsChips: namespaces.map(n => ({
+        label: n + "/",
+        chipStyle: "padding:2px 8px; border-radius:5px; cursor:default; font-family:ui-monospace,'SF Mono',Menlo,monospace; font-size:11.5px; color:" +
+          (newNs === n ? "#2f56b5" : "#5d6068") + "; background:" + (newNs === n ? "#eaf0fe" : "#f4f6f9") + "; box-shadow:0 0 0 .5px " + (newNs === n ? "#c2d4fb" : "#e8eaee") + ";",
+        onPick: () => this.setState({ newPath: n + "/" })
+      })),
+      nameHint, nameHintColor,
+      nameRing: exists ? "#e8b3ad" : (fullName ? "#c2d4fb" : "#d7dae0"),
+      newValueShown: st.newRevealed ? st.newValue : "•".repeat(st.newValue.length),
+      onNewValue: (e) => this.setState({ newValue: e.target.value, newRevealed: true }),
+      onToggleNewReveal: () => this.setState({ newRevealed: !st.newRevealed }),
+      newRevealLabel: st.newRevealed ? "Hide" : "Reveal",
+      onGenerate: () => this.setState({ newValue: this.random(32), newRevealed: true }),
+      valueCount: st.newValue ? st.newValue.length + " characters" : "Empty",
+      activateTrack: track(st.activateNow),
+      activateKnob: knob,
+      activateNote: st.activateNow ? "Consumers pick up this value on their next fetch." : "Stored as an inactive version until you activate it.",
+      onToggleActivate: () => this.setState({ activateNow: !st.activateNow }),
+      apiCall: "POST /api/put" + (st.activateNow ? " → POST /api/activate" : ""),
+      apiNote: st.activateNow ? "2 requests" : "1 request",
+      footerHint: valid ? "⌘↩ to create" : (st.newValue ? "Enter a valid name" : "Add a value"),
+      createLabel: "Create secret",
+      createStyle: "display:flex; align-items:center; height:30px; padding:0 15px; border-radius:7px; font-size:12.5px; font-weight:500; cursor:default; color:#ffffff; background:" +
+        (valid ? "#3c6df0" : "#b9c8ef") + "; box-shadow:" + (valid ? "0 1px 2px rgba(60,109,240,.3)" : "none") + ";",
+      onCreate: () => { if (valid) this.setState({ sheetOpen: false, newPath: "", newValue: "" }); }
+    };
+  }
+}
+
+</script>
+</body>
+</html>
