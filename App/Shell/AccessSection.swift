@@ -38,6 +38,7 @@ struct AccessSection: View {
     private var sourceLabel: String {
         switch access.state {
         case .idle, .loading: return "Reading the tailnet policy"
+        case .disabled: return "No policy credential configured"
         case .failed: return "The tailnet policy is unavailable"
         case .loaded:
             let count = access.ruleCount(in: scope)
@@ -50,15 +51,37 @@ struct AccessSection: View {
         switch access.state {
         case .idle, .loading:
             placeholder { ProgressView().controlSize(.small) }
+        case .disabled:
+            placeholder {
+                VStack(alignment: .leading, spacing: 4) {
+                    Text("The matrix is switched off")
+                        .font(Typeface.control)
+                        .foregroundStyle(Palette.textBody)
+                    Text("""
+                    Name the two setec entries holding the Tailscale OAuth client in Settings › \
+                    Access matrix. Everything else in this window works without them.
+                    """)
+                    .font(Typeface.meta)
+                    .foregroundStyle(Palette.textQuaternary)
+                }
+            }
         case let .failed(message):
             placeholder {
                 VStack(alignment: .leading, spacing: 4) {
                     Text("No grants to show")
                         .font(Typeface.control)
                         .foregroundStyle(Palette.textBody)
-                    Text(verbatim: "\(message). The grants live in the tailnet policy file, not in setec.")
+                    Text(verbatim: message)
                         .font(Typeface.meta)
                         .foregroundStyle(Palette.textQuaternary)
+                        .fixedSize(horizontal: false, vertical: true)
+                    Text("""
+                    The secrets themselves are unaffected — the grants come from the tailnet policy, \
+                    not from setec. Check the two entry names in Settings › Access matrix.
+                    """)
+                    .font(Typeface.meta)
+                    .foregroundStyle(Palette.textQuaternary)
+                    .fixedSize(horizontal: false, vertical: true)
                 }
             }
         case .loaded:

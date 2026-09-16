@@ -13,6 +13,9 @@ final class AccessStore {
         case loading
         case loaded
         case failed(String)
+        /// No credential names are configured. Not a failure — the matrix is
+        /// switched off, and the section says that rather than an error.
+        case disabled
     }
 
     private(set) var state: State = .idle
@@ -23,6 +26,23 @@ final class AccessStore {
     init(client: TailnetPolicyClient?, identity: @escaping @MainActor () -> TailnetIdentity? = { nil }) {
         self.client = client
         identityProvider = identity
+        if client == nil {
+            state = .disabled
+        }
+    }
+
+    /// Points the store at different credential entries and reloads. Passing
+    /// nil switches the matrix off. The Settings window writes through here,
+    /// so a corrected name takes effect without a relaunch.
+    func use(client: TailnetPolicyClient?) async {
+        self.client = client
+        policy = nil
+        guard client != nil else {
+            state = .disabled
+            return
+        }
+        state = .idle
+        await load()
     }
 
     static func preview(_ policy: TailnetPolicy? = nil) -> AccessStore {
@@ -46,11 +66,21 @@ final class AccessStore {
         return store
     }
 
+    /// Whether the matrix has anything to show, which the section reads to
+    /// decide between "switched off" and "could not be read".
+    var isConfigured: Bool {
+        state != .disabled
+    }
+
     /// Reads the policy once per launch. A failure leaves the section stating
     /// where the grants would have come from; it never shows an empty matrix
     /// as if it were complete.
     func load() async {
-        guard let client, state != .loading else { return }
+        guard let client else {
+            state = .disabled
+            return
+        }
+        guard state != .loading else { return }
         state = .loading
         do {
             let loaded = try await client.loadPolicy()

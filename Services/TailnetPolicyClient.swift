@@ -10,8 +10,6 @@ import Foundation
 /// that the entries whose names contain "api key" are node auth keys that
 /// answer 401 here.
 struct TailnetPolicyClient: Sendable {
-    static let clientIDSecret = "homelab/ts-oauth-client-id"
-    static let clientSecretSecret = "homelab/ts-oauth-client-secret"
     static let tokenURL = URL(string: "https://api.tailscale.com/api/v2/oauth/token")!
     static let policyURL = URL(string: "https://api.tailscale.com/api/v2/tailnet/-/acl")!
 
@@ -20,9 +18,12 @@ struct TailnetPolicyClient: Sendable {
 
     var setec: SetecClient
     var session: URLSession
+    /// The setec entries holding the OAuth client, from `AccessSetting`.
+    var names: AccessSetting.Names
 
-    init(setec: SetecClient, session: URLSession = .shared) {
+    init(setec: SetecClient, names: AccessSetting.Names, session: URLSession = .shared) {
         self.setec = setec
+        self.names = names
         self.session = session
     }
 
@@ -34,8 +35,11 @@ struct TailnetPolicyClient: Sendable {
 
         var errorDescription: String? {
             switch self {
-            case let .credential(name): "Cannot read \(name) from setec"
-            case let .token(code): "The OAuth exchange answered HTTP \(code)"
+            case let .credential(detail): "Cannot read the OAuth client from setec — \(detail)"
+            case let .token(code):
+                code == 401
+                    ? "The OAuth exchange refused the client (HTTP 401) — the two entries hold something else"
+                    : "The OAuth exchange answered HTTP \(code)"
             case let .policy(code): "The policy file answered HTTP \(code)"
             case let .decoding(message): "The policy file did not parse: \(message)"
             }
@@ -59,10 +63,12 @@ struct TailnetPolicyClient: Sendable {
         let id: String
         let secret: String
         do {
-            id = try await setec.get(name: Self.clientIDSecret).value
-            secret = try await setec.get(name: Self.clientSecretSecret).value
-        } catch {
-            throw Failure.credential(Self.clientIDSecret)
+            id = try await setec.get(name: names.clientID).value
+            secret = try await setec.get(name: names.clientSecret).value
+        } catch let failure as SetecClient.Failure {
+            // The name is reported back, because a wrong name is the likely
+            // cause and the operator can only correct what is named.
+            throw Failure.credential("\(names.clientID) / \(names.clientSecret): \(failure.localizedDescription)")
         }
         var request = URLRequest(url: Self.tokenURL)
         request.httpMethod = "POST"

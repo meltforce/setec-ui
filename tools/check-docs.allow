@@ -24,8 +24,3 @@
 # The "Rolle" example is the language rule explaining itself: it names the
 # translation layer it exists to prevent.
 CLAUDE.md%%("Rolle" in the text
-
-# "falls back" — the English verb, describing what `.buttonBorderShape(.circle)`
-# does with a label that has no explicit square frame. The German `falls` is in
-# the function-word list, which is why this one line needs naming.
-CLAUDE.md%%the shape falls back to a

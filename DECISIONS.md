@@ -418,6 +418,20 @@ grants, or an empty matrix labelled as complete.
 **Trigger to re-open.** setec gaining a policy-read endpoint, or the read-only
 OAuth client losing `policy_file:read`.
 
+**Revisions.** 2026-09-16: the two entry names moved from constants in
+`TailnetPolicyClient` into a setting (`AccessSetting`, Settings › Access
+matrix), and the defaults became the app's own `setec-ui/ts-client-{id,secret}`
+rather than the fleet's `homelab/ts-oauth-client-{id,secret}`. A name that
+belongs to one fleet does not belong in an app's source, and an app pointed at
+a different setec server has no reason to carry it; its own prefix is a name
+the app can state without assuming whose store it is talking to. Leaving either blank switches the matrix off — a store with no policy
+credential is an ordinary configuration, and the section now says "switched
+off" rather than reporting an error. A wrong name reports the failure in the
+matrix and names both entries; the secret list, the versions and every action
+are untouched, which `AccessStoreTests` asserts and which was measured against
+the production server in all three states: a name that does not exist, both
+names blank, and the defaults restored.
+
 ---
 
 ## 2026-09-16 — the app is not sandboxed

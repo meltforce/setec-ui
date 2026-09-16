@@ -8,7 +8,9 @@ struct AppMain: App {
 
     init() {
         let store = SecretStore()
-        let client = TailnetPolicyClient(setec: SetecClient(server: store.server))
+        let client = AccessSetting.resolve().map {
+            TailnetPolicyClient(setec: SetecClient(server: store.server), names: $0)
+        }
         _store = State(initialValue: store)
         _access = State(initialValue: AccessStore(client: client) { [weak store] in store?.identity })
     }
@@ -29,6 +31,7 @@ struct AppMain: App {
         Settings {
             SettingsView()
                 .environment(store)
+                .environment(access)
         }
     }
 }

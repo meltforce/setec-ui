@@ -291,7 +291,7 @@ writing a view, `mac-app-verify` before claiming a task done.
   hover). An explanation goes inline — the access matrix's legend is the
   worked example.
 - **`.buttonBorderShape(.circle)` needs a label with an explicit square
-  frame.** With a label of the glyph's own width the shape falls back to a
+  frame.** With a label of the glyph's own width the shape reverts to a
   capsule, and with `.circle` set it draws no background at all. SwiftUI's
   `Menu` will not take the round shape under any combination: an icon-only
   menu button is a `Button` with an `NSMenu` — `App/Components/IconMenuButton.swift`.

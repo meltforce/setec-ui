@@ -7,8 +7,10 @@ struct SettingsView: View {
         TabView {
             ServerSettings()
                 .tabItem { Label("Server", systemImage: "server.rack") }
+            AccessMatrixSettings()
+                .tabItem { Label("Access matrix", systemImage: "tablecells") }
         }
-        .frame(width: 520, height: 340)
+        .frame(width: 560, height: 360)
     }
 }
 
@@ -111,5 +113,91 @@ struct ServerSettings: View {
         draft = ServerSetting.fallback.absoluteString
         store.use(server: ServerSetting.fallback)
         status = "Back to the default"
+    }
+}
+
+/// Which two setec entries hold the Tailscale OAuth client the access matrix
+/// reads the policy with. Clearing either field switches the matrix off; it
+/// does not affect anything else the window does.
+struct AccessMatrixSettings: View {
+    @Environment(SecretStore.self) private var store
+    @Environment(AccessStore.self) private var access
+    @AppStorage(AccessSetting.clientIDKey) private var storedID = AccessSetting.defaultClientIDSecret
+    @AppStorage(AccessSetting.clientSecretKey) private var storedSecret = AccessSetting.defaultClientSecretSecret
+    @State private var draftID = ""
+    @State private var draftSecret = ""
+    @State private var status = ""
+
+    var body: some View {
+        Form {
+            Section {
+                TextField(
+                    "Client ID entry",
+                    text: $draftID,
+                    prompt: Text(verbatim: AccessSetting.defaultClientIDSecret)
+                )
+                .accessibilityIdentifier("settings.access.id")
+                TextField(
+                    "Client secret entry",
+                    text: $draftSecret,
+                    prompt: Text(verbatim: AccessSetting.defaultClientSecretSecret)
+                )
+                .accessibilityIdentifier("settings.access.secret")
+                HStack {
+                    Button("Apply") { apply() }
+                        .accessibilityIdentifier("settings.access.apply")
+                    Button("Use the defaults") { reset() }
+                        .accessibilityIdentifier("settings.access.reset")
+                    Spacer()
+                    Text(verbatim: status.isEmpty ? stateLabel : status)
+                        .foregroundStyle(.secondary)
+                        .accessibilityIdentifier("settings.access.state")
+                }
+            } header: {
+                Text("Tailscale OAuth client")
+            } footer: {
+                Text("""
+                These are the names of two setec entries, not the credential itself. The app reads \
+                them under this machine's tailnet identity and exchanges them for a token that reads \
+                the tailnet policy file — setec has no policy endpoint of its own.
+
+                Leave either field empty to switch the matrix off. The secret list, the versions and \
+                every action keep working either way; only the grants of other principals need this.
+                """)
+            }
+        }
+        .formStyle(.grouped)
+        .onAppear {
+            draftID = storedID
+            draftSecret = storedSecret
+        }
+    }
+
+    private var stateLabel: String {
+        switch access.state {
+        case .loaded: "Policy loaded"
+        case .loading: "Reading…"
+        case .idle: "Not read yet"
+        case .disabled: "Switched off"
+        case .failed: "Could not be read"
+        }
+    }
+
+    private func apply() {
+        storedID = draftID.trimmingCharacters(in: .whitespacesAndNewlines)
+        storedSecret = draftSecret.trimmingCharacters(in: .whitespacesAndNewlines)
+        status = ""
+        Task {
+            let client = AccessSetting.resolve().map {
+                TailnetPolicyClient(setec: SetecClient(server: store.server), names: $0)
+            }
+            await access.use(client: client)
+        }
+    }
+
+    private func reset() {
+        draftID = AccessSetting.defaultClientIDSecret
+        draftSecret = AccessSetting.defaultClientSecretSecret
+        apply()
     }
 }

@@ -29,7 +29,9 @@ the local `tailscaled`, so there is no login screen and no token to enter.
 - The setec server `https://setec.coydog-fence.ts.net`, and the Tailscale
   control API at `api.tailscale.com`. Both are read over the tailnet; neither is
   configured from here. `SETEC_SERVER` and the Settings field point the app at a
-  different server.
+  different server, and Settings › Access matrix names the two setec entries
+  holding the OAuth client the policy is read with — empty switches the matrix
+  off and changes nothing else.
 - The `tailscale` CLI, which the app runs once per launch to read the identity
   it shows in the toolbar. Without it the toolbar says "Identity unknown" and
   nothing else changes.
