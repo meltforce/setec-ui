@@ -14,6 +14,174 @@ place with the old form recorded under revisions — the entry is not duplicated
 
 ---
 
+## 2026-09-16 — a delete-version confirmation is a sheet, not a system alert
+
+**Decided:** 2026-09-16
+
+**Decision.** Deleting a single version opens `DeleteVersionSheet`, built from
+the same `SheetChrome` as the delete-secret sheet: red header, the consequence
+lines, the red API preview, `Delete version` as the primary button. It does not
+ask for the name to be typed — that guard stays on the whole-secret delete.
+`confirmationDialog`, which is what the first implementation used, is gone.
+
+**Reasoning.** Two properties, both measured on 2026-09-16. The first is
+consistency: every other modal in the app is a sheet in the app's own palette,
+and a `confirmationDialog` renders as an `_NSAlertPanel` in the system's. The
+second is reachability: that panel is a separate window that neither
+`axdump --click` nor `osascript` addresses — its buttons report `missing value`
+for their name, and a synthesized Return does not reach it, so the confirm path
+had no way to be exercised from a test or from the agent. A destructive path
+that cannot be tested is the one that should be.
+
+**Alternative considered.** Keeping the alert and testing only the store method
+behind it. Rejected because the untested part is exactly the step between the
+button and the call.
+
+**Trigger to re-open.** A macOS release in which `confirmationDialog` presents
+as a sheet of the presenting window rather than as an alert panel.
+
+---
+
+## 2026-09-16 — the dark palette is designed, not interpolated
+
+**Decided:** 2026-09-16
+
+**Decision.** `App/Design/Palette.swift` carries both appearances. Every token
+from `design/handoff.md` § *Design Tokens* has a light value taken from the
+handoff and a dark value chosen here: the neutral ramp is inverted, the surfaces
+sit between `#17181c` and `#2a2c32`, and each accent is lifted until it holds
+its contrast on a dark surface. Sidebar row text and counts are the exception —
+they use `.secondary`, because the sidebar style inverts the foreground of the
+selected row and a fixed grey stays grey on the selection fill.
+
+**Reasoning.** The operator asked for dark mode in the build. The handoff states
+the palette is light-mode only and that a native build needs a second pass, so
+the dark values are a design decision made here and are marked as such rather
+than presented as part of the handoff.
+
+**Alternative considered.** Deriving the dark values mechanically by inverting
+lightness. Rejected: it produces a washed-out blue for the primary action and a
+red that reads brown, both visible in the first pass before the accents were
+lifted by hand.
+
+**Trigger to re-open.** A dark palette arriving from design, which replaces
+these values rather than being merged with them.
+
+---
+
+## 2026-09-16 — writes from a Debug build go to `setec-ui-dev/`
+
+**Decided:** 2026-09-16
+
+**Decision.** Exploratory `put`, `activate`, `delete` and `delete-version` calls
+from a development build use names under `setec-ui-dev/`. The prefix is recorded
+in homelab `SECRETS.md` § *setec*. It normally holds nothing: a group exists
+exactly as long as a secret carries its prefix, so the prefix disappears from
+`setec list` when the last test name is deleted.
+
+**Reasoning.** Development runs against the production store under an identity
+holding every capability on `*` (`infrastructure/tailnet-policy/policy.hujson`),
+so a misdirected write changes a secret a real service reads. A reserved prefix
+makes a misdirected write harmless. The cost is a name in the store that
+`SECRETS.md` has to explain, which is smaller than the cost of the write it
+prevents.
+
+**Alternative considered.** Discipline alone, with no reserved prefix. Rejected
+because the whole write path has to be exercised against the real server at
+least once, and "be careful" is not a place for that to land.
+
+**Trigger to re-open.** A second setec server that development could point at
+instead.
+
+---
+
+## 2026-09-16 — the server URL comes from a constant, the Settings field and `SETEC_SERVER`
+
+**Decided:** 2026-09-16
+
+**Decision.** `ServerSetting.resolve()` reads, in order: `SETEC_SERVER` from the
+environment, the value the Settings window stored in `UserDefaults`, then the
+built-in `https://setec.coydog-fence.ts.net`. The Settings field writes through
+`SecretStore.use(server:)`, so a server change takes effect without a relaunch;
+while `SETEC_SERVER` is set the field is disabled and says so.
+
+**Reasoning.** The environment variable is what the `setec` CLI reads, so a
+shell that is already pointed at a server points the app at the same one. The
+Settings field is what a person without that shell uses. The constant is what
+makes the app work with neither. Building all three now costs one resolution
+function; adding the field later would mean reworking a store that was
+constructed once at launch.
+
+**Alternative considered.** A constant alone. Rejected because the design draws
+a server picker in the toolbar, and a picker over a value that cannot change is
+a control that lies.
+
+**Trigger to re-open.** A second setec server, which turns the picker from a
+display of one value into a choice and moves the setting out of a single field.
+
+---
+
+## 2026-09-16 — the version table drops author and timestamp, and two smart filters are replaced
+
+**Decided:** 2026-09-16
+
+**Decision.** The version table shows the version number, the `active` and
+`latest` badges and the row actions. The design's "date · author" column and the
+6-character digest are not built, and the list cards carry no relative age. The
+sidebar's smart filters are *No rollback version* (one version), *Latest is not
+active* (a newer version exists than the one in use) and *Multiple versions*.
+
+**Reasoning.** `/api/list` returns `Name`, `Versions` and `ActiveVersion` and
+nothing else — confirmed against the production server on 2026-09-16, 286
+secrets, and matching `design/api.md`. The design's *Rotation over 90 days* and
+*Changed this week* both need a timestamp that has no source. The three filters
+built instead are each answerable from the list response, so the sidebar keeps
+its shape and every count in it is true.
+
+**Alternative considered.** A local sidecar store recording what this app
+writes. Rejected: it would describe only the changes made through this app on
+this machine, so the column would be empty for every secret that existed before
+and would disagree between two Macs. Also rejected, as the handoff already says:
+placeholder values, because a plausible-looking author who did not publish the
+version is worse than a missing column. The value envelope is ruled out by its
+cost — a wrapped value is no longer the value, and every `setec get` in a
+`run.sh` and every `setec.Store` consumer would read JSON where it expects the
+secret.
+
+**Trigger to re-open.** setec carrying per-version metadata in its API, which
+restores the columns and the two time-based filters together.
+
+---
+
+## 2026-09-16 — the app reaches setec with a plain `URLSession`
+
+**Decided:** 2026-09-16
+
+**Decision.** The client is `URLSession` against
+`https://setec.coydog-fence.ts.net`, with `Sec-X-Tailscale-No-Browsers: setec`
+on every call and no credential of any kind. No Tailscale library is linked.
+The tailnet identity shown in the toolbar is read separately, by running
+`tailscale status --json`.
+
+**Reasoning.** setec authorizes the caller by the tailnet identity of the source
+address, so a request from a non-sandboxed app on a node that is signed in
+carries the same principal as a `setec` CLI call from the same Mac. Measured on
+2026-09-16: a Debug build listed the same 286 secrets that `setec list` returns
+on blackbook, MagicDNS resolved the name from inside the app bundle, and the
+whole write path — put, activate, delete-version, delete — ran against
+`setec-ui-dev/smoke` and left the store as it found it. This is the assumption
+the rest of the design rests on, which is why it was the first thing built.
+
+**Alternative considered.** Reading the identity from the local `tailscaled`
+API instead of the CLI. Rejected: reaching it means reading the client
+authorization token out of `/Library/Tailscale`, which is a credential read for
+a display string.
+
+**Trigger to re-open.** The app being sandboxed, or a setec deployment that
+authenticates by something other than the peer identity.
+
+---
+
 ## 2026-09-16 — the access matrix reads the Tailscale control API
 
 **Decided:** 2026-09-16

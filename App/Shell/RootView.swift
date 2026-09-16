@@ -41,6 +41,8 @@ struct RootView: View {
                 NewVersionSheet(name: name)
             case let .deleteSecret(name):
                 DeleteSecretSheet(name: name)
+            case let .deleteVersion(name, version):
+                DeleteVersionSheet(name: name, version: version)
             }
         }
         .focusedSceneValue(\.secretActions, SecretActions(
@@ -99,6 +101,5 @@ struct ProblemStrip: View {
         .frame(maxWidth: .infinity)
         .background(Palette.redHeaderFill)
         .hairline(.bottom, color: Palette.redRing)
-        .accessibilityIdentifier("problem.strip")
     }
 }

@@ -29,12 +29,14 @@ final class SecretStore {
         case newSecret
         case newVersion(String)
         case deleteSecret(String)
+        case deleteVersion(String, Int)
 
         var id: String {
             switch self {
             case .newSecret: "new"
             case let .newVersion(name): "version:\(name)"
             case let .deleteSecret(name): "delete:\(name)"
+            case let .deleteVersion(name, version): "delete-version:\(name):v\(version)"
             }
         }
     }
@@ -280,6 +282,10 @@ final class SecretStore {
         defer { busy = nil }
         do {
             try await body()
+            // The body reloads the list, which sets `lastCall` to that reload.
+            // The status bar names what the user asked for, so the write is
+            // restored as the last call.
+            lastCall = call
             problem = nil
             return true
         } catch {

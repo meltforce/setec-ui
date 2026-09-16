@@ -62,7 +62,10 @@ struct SidebarView: View {
             } else if let glyph {
                 Image(systemName: glyph)
                     .font(.system(size: 9, weight: .semibold))
-                    .foregroundStyle(Palette.textQuaternary)
+                    // Not a palette colour: the sidebar style inverts the
+                    // foreground of the selected row, and a fixed grey stays
+                    // grey on the selection fill.
+                    .foregroundStyle(.secondary)
                     .frame(width: 10)
             }
             Text(verbatim: label)
@@ -72,7 +75,7 @@ struct SidebarView: View {
             Text(verbatim: "\(count)")
                 .font(Typeface.badge)
                 .tabularDigits()
-                .foregroundStyle(Palette.textMeta)
+                .foregroundStyle(.secondary)
         }
         .tag(scope)
         .accessibilityIdentifier("sidebar.\(identifier(for: scope))")

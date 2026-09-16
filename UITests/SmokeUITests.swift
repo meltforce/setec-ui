@@ -58,6 +58,29 @@ final class SmokeUITests: XCTestCase {
         app.buttons["newSecret.cancel"].click()
     }
 
+    /// Both destructive paths are sheets in the app's own visual language, so
+    /// both are reachable here. This one opens and cancels; it deletes nothing.
+    @MainActor
+    func testTheDeleteSecretSheetStaysInertUntilTheNameMatches() {
+        let app = launch()
+        let row = app.staticTexts["sidebar.filter.multipleVersions"].firstMatch
+        XCTAssertTrue(row.waitForExistence(timeout: 15))
+        row.click()
+        let list = app.descendants(matching: .any).matching(identifier: "secrets.list").firstMatch
+        XCTAssertTrue(list.waitForExistence(timeout: 10))
+        let card = list.cells.firstMatch
+        XCTAssertTrue(card.waitForExistence(timeout: 5))
+        card.click()
+        XCTAssertTrue(app.staticTexts["detail.title"].waitForExistence(timeout: 5), "a secret is selected")
+        app.menuBars.menuItems["Delete Secret…"].click()
+        let field = app.textFields["deleteSecret.confirmName"]
+        XCTAssertTrue(field.waitForExistence(timeout: 5))
+        XCTAssertFalse(app.buttons["deleteSecret.submit"].isEnabled)
+        XCTAssertTrue(app.staticTexts["deleteSecret.hint"].exists)
+        app.buttons["deleteSecret.cancel"].click()
+        XCTAssertFalse(field.waitForExistence(timeout: 2))
+    }
+
     @MainActor
     func testTheSidebarSelectsAFilter() {
         let app = launch()

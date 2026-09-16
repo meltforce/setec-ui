@@ -84,7 +84,6 @@ struct AccessSection: View {
             }
         }
         .panelSurface()
-        .accessibilityIdentifier("access.matrix")
     }
 
     private var headerRow: some View {

@@ -39,7 +39,6 @@ struct DetailView: View {
                 .frame(maxWidth: .infinity, alignment: .leading)
             }
         }
-        .accessibilityIdentifier("detail.\(secret.name)")
     }
 }
 

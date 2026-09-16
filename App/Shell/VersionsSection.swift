@@ -10,7 +10,6 @@ import SwiftUI
 struct VersionsSection: View {
     @Environment(SecretStore.self) private var store
     let secret: Secret
-    @State private var pendingDeletion: Int?
 
     var body: some View {
         VStack(alignment: .leading, spacing: 10) {
@@ -28,35 +27,7 @@ struct VersionsSection: View {
                 }
             }
             .panelSurface()
-            .accessibilityIdentifier("versions.table")
         }
-        .confirmationDialog(
-            "Delete version \(pendingDeletion.map { "v\($0)" } ?? "")?",
-            isPresented: deletionBinding,
-            titleVisibility: .visible
-        ) {
-            Button("Delete version", role: .destructive) {
-                if let version = pendingDeletion {
-                    Task { _ = await store.deleteVersion(name: secret.name, version: version) }
-                }
-                pendingDeletion = nil
-            }
-            .accessibilityIdentifier("versions.confirmDelete")
-            Button("Cancel", role: .cancel) { pendingDeletion = nil }
-        } message: {
-            Text(verbatim: """
-            \(secret.name) keeps its other versions. setec keeps no backup of a deleted value, \
-            and the version number is not reused.
-            """)
-        }
-    }
-
-    private var deletionBinding: Binding<Bool> {
-        Binding(get: { pendingDeletion != nil }, set: {
-            if !$0 {
-                pendingDeletion = nil
-            }
-        })
     }
 
     private func row(for version: Int) -> some View {
@@ -68,6 +39,7 @@ struct VersionsSection: View {
                 .tabularDigits()
                 .foregroundStyle(Palette.textPrimary)
                 .frame(width: 52, alignment: .leading)
+                .accessibilityIdentifier("versions.row.\(version)")
             HStack(spacing: 6) {
                 if isActive {
                     badge("active", text: Palette.activeBadgeText, fill: Palette.badgeFill)
@@ -84,7 +56,6 @@ struct VersionsSection: View {
         .padding(.horizontal, 14)
         .padding(.vertical, 10)
         .background(isActive ? Palette.activeTableRow : .clear)
-        .accessibilityIdentifier("versions.row.\(version)")
     }
 
     @ViewBuilder
@@ -101,7 +72,7 @@ struct VersionsSection: View {
                 .buttonStyle(SecondaryButtonStyle(height: 24))
                 .accessibilityIdentifier("versions.activate.\(version)")
                 Button("Delete") {
-                    pendingDeletion = version
+                    store.sheet = .deleteVersion(secret.name, version)
                 }
                 .buttonStyle(SecondaryButtonStyle(height: 24, destructive: true))
                 .accessibilityIdentifier("versions.delete.\(version)")

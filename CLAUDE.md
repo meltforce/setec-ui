@@ -35,9 +35,12 @@ server.
 - **`confirm-token` is not part of the API.** The CLI calls it a request digest
   and says explicitly that it is not a security feature. The delete sheet's
   type-the-name confirmation replaces it; do not surface a token.
-- **The design is light-mode only.** The token list in `design/handoff.md`
-  carries no dark palette, and the prototype draws its own window chrome, which
-  the real window provides. Dark mode is a separate pass, not an interpolation.
+- **The handoff is light-mode only; the dark palette is this repo's own.**
+  `design/handoff.md` carries no dark values. The ones in
+  `App/Design/Palette.swift` were chosen here and are recorded as a decision, so
+  a palette arriving from design replaces them rather than being merged into
+  them. The prototype also draws its own window chrome, which the real window
+  provides.
 - **`design/` is a specification, not a source tree.** The inline styles are the
   intended sizes, colors and hierarchy; the controls are rebuilt with native
   ones. Do not port the HTML.
@@ -272,6 +275,19 @@ writing a view, `mac-app-verify` before claiming a task done.
   controls through accessibility, which `.onTapGesture` does not answer.
   Anything the agent or a test has to activate — a scrim, a chip, a row
   action — is a `Button`.
+- **An `.accessibilityIdentifier` on a container replaces the identifiers of
+  every child inside it.** Measured three times on 2026-09-16 in this repo: an
+  identifier on the sheet body, on the detail column and on the version table
+  made every text field, static text and button beneath them report the
+  container's identifier, and `make click` and the UI tests stopped finding
+  them. Identifiers go on leaves. The rule is in
+  `mac-ui-patterns/references/type-ahead.md`; it is repeated here because it
+  costs a build cycle to rediscover.
+- **A `confirmationDialog` is an `_NSAlertPanel`, which the agent cannot
+  drive.** Its buttons report `missing value` for their name, `osascript` does
+  not reach them and a synthesized Return does not either. A destructive
+  confirmation is a sheet — see `App/Sheets/DeleteVersionSheet.swift` and
+  [`DECISIONS.md`](DECISIONS.md).
 
 ### Working rhythm
 
