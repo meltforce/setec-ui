@@ -14,6 +14,58 @@ place with the old form recorded under revisions — the entry is not duplicated
 
 ---
 
+## 2026-09-16 — no keyboard shortcut carries Shift, and copying sits on the value
+
+**Decided:** 2026-09-16
+
+**Decision.** The shortcuts are ⌘N New Secret, ⌘⌥N New Version, ⌘⌥C Copy
+Value, ⌘E Reveal or Hide Value, ⌘R Refresh, ⌘⌫ Delete Secret and ⌘F Find,
+which focuses the toolbar's search field through `searchFocused`. None carries
+Shift.
+
+Copying the value is no longer a button in the detail column's action bar. It
+is a control on the value panel itself, shown on rollover.
+
+**Reasoning.** The operator asked for the Shift variants to be dropped. Two of
+them cannot simply lose it: ⌘N already creates a secret, so a version takes
+⌘⌥N; and ⌘C belongs to the text selection in the value panel and in every sheet
+field — a `Commands` entry on ⌘C competes with the Edit menu's Copy for the
+same key and makes copying a name out of a field ambiguous. Measured after the
+change with `AXMenuItemCmdModifiers`: every entry reports 0 or 2, which is ⌘ and
+⌘⌥; the only Shift in the menu bar is the system's own Redo.
+
+Copying belongs next to the value because that is the object being copied, and
+the action bar is about the secret as a whole.
+
+**Alternative considered.** Giving Reveal ⌘R and moving Refresh to ⌘⌥R.
+Rejected: ⌘R means reload across macOS, and Refresh is the window-wide action.
+
+**Trigger to re-open.** A second action that wants ⌘E or ⌘⌥C.
+
+---
+
+## 2026-09-16 — `.help` is replaced by an AppKit tooltip
+
+**Decided:** 2026-09-16
+
+**Decision.** `App/Components/Tooltip.swift` provides `.tooltip(_:)`, which
+overlays an `NSView` carrying a `toolTip`. The access matrix's column headings
+use it. `.help` stays on controls, where it works.
+
+**Reasoning.** `.help` on a plain `Text` produced no tooltip, with or without a
+`contentShape` — the operator reported it and a hover of three seconds over the
+headings produced no tooltip window in `CGWindowListCopyWindowInfo`. AppKit's
+`toolTip` is the mechanism the system itself uses, so the delay, the placement
+and the dismissal are not reimplemented.
+
+**Alternative considered.** Making each heading a `Button` with a plain style,
+because `.help` works on controls. Rejected: a button that performs nothing is
+a control that lies about being one.
+
+**Trigger to re-open.** A SwiftUI release in which `.help` works on a `Text`.
+
+---
+
 ## 2026-09-16 — the toolbar carries the search field and two buttons, and nothing else
 
 **Decided:** 2026-09-16

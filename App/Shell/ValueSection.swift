@@ -10,6 +10,8 @@ struct ValueSection: View {
 
     private static let maskLength = 40
 
+    @State private var hovering = false
+
     var body: some View {
         VStack(alignment: .leading, spacing: 10) {
             SectionHeader(title: "Value of active version") {
@@ -54,11 +56,33 @@ struct ValueSection: View {
             .textSelection(.enabled)
             .frame(maxWidth: .infinity, alignment: .leading)
             .fixedSize(horizontal: false, vertical: true)
+            // On the value itself, not on the panel around it: an identifier
+            // on the container would replace the copy button's own.
+            .accessibilityIdentifier("value.panel")
         }
         .padding(.horizontal, 16)
         .padding(.vertical, 14)
         .panelSurface()
-        .accessibilityIdentifier("value.panel")
+        .overlay(alignment: .topTrailing) { copyButton }
+        .onHover { hovering = $0 }
+    }
+
+    /// Copying belongs to the value, not to the window's action bar. The
+    /// button appears on rollover, and SwiftUI takes a fully transparent view
+    /// out of the accessibility tree — so `make click` and the UI tests hover
+    /// the panel first, the same way a person does.
+    private var copyButton: some View {
+        Button(store.copyConfirmed ? "Copied ✓" : "Copy") {
+            Task { await store.copyActiveValue() }
+        }
+        .buttonStyle(.glass)
+        .controlSize(.small)
+        .disabled(store.isFetchingValue)
+        .padding(8)
+        .opacity(hovering || store.copyConfirmed ? 1 : 0)
+        .animation(.easeOut(duration: 0.12), value: hovering)
+        .animation(.easeOut(duration: 0.12), value: store.copyConfirmed)
+        .accessibilityIdentifier("value.copy")
     }
 
     private var footer: some View {

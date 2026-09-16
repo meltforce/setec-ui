@@ -81,6 +81,25 @@ final class SmokeUITests: XCTestCase {
         XCTAssertFalse(field.waitForExistence(timeout: 2))
     }
 
+    /// Copying moved from the action bar onto the value panel and appears on
+    /// rollover. Hovering is what makes it exist; the test does what a person
+    /// does. It presses nothing — a press would fetch a production value.
+    @MainActor
+    func testTheCopyButtonAppearsWhenTheValuePanelIsHovered() {
+        let app = launch()
+        let list = app.descendants(matching: .any).matching(identifier: "secrets.list").firstMatch
+        XCTAssertTrue(list.waitForExistence(timeout: 15))
+        let card = list.cells.firstMatch
+        XCTAssertTrue(card.waitForExistence(timeout: 5))
+        card.click()
+        let panel = app.descendants(matching: .any).matching(identifier: "value.panel").firstMatch
+        XCTAssertTrue(panel.waitForExistence(timeout: 5))
+        XCTAssertFalse(app.buttons["value.copy"].exists, "hidden until the pointer is on the panel")
+        panel.hover()
+        XCTAssertTrue(app.buttons["value.copy"].waitForExistence(timeout: 3))
+        XCTAssertFalse(app.buttons["detail.copy"].exists, "the action bar no longer carries it")
+    }
+
     @MainActor
     func testTheSidebarSelectsAFilter() {
         let app = launch()

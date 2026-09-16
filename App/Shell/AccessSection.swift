@@ -117,7 +117,7 @@ struct AccessSection: View {
                     .font(Typeface.mono(10.5))
                     .foregroundStyle(Palette.textQuaternary)
                     .frame(width: 74)
-                    .help(capability.explanation)
+                    .tooltip(capability.explanation)
             }
         }
         .padding(.horizontal, 14)

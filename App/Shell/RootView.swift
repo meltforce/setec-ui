@@ -7,6 +7,7 @@ import SwiftUI
 struct RootView: View {
     @Environment(SecretStore.self) private var store
     @Environment(AccessStore.self) private var access
+    @FocusState private var searchFocused: Bool
 
     var body: some View {
         @Bindable var store = store
@@ -31,6 +32,7 @@ struct RootView: View {
             placement: .toolbar,
             prompt: Text("Search secrets")
         )
+        .searchFocused($searchFocused)
         .safeAreaInset(edge: .top, spacing: 0) {
             if let problem = store.problem {
                 ProblemStrip(message: problem) { store.dismissProblem() }
@@ -63,6 +65,7 @@ struct RootView: View {
             refresh: { Task { await store.refresh() } },
             toggleReveal: { Task { store.revealed == nil ? await store.reveal() : store.hide() } },
             copyValue: { Task { await store.copyActiveValue() } },
+            focusSearch: { searchFocused = true },
             canActOnSecret: store.selectedName != nil
         ))
         .task {

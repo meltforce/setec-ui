@@ -58,17 +58,15 @@ struct DetailActionBar: View {
                 .foregroundStyle(Palette.textQuaternary)
                 .lineLimit(1)
             Spacer(minLength: 0)
-            Button(store.copyConfirmed ? "Copied ✓" : "Copy value") {
-                Task { await store.copyActiveValue() }
-            }
-            .buttonStyle(SecondaryButtonStyle(height: 24))
-            .disabled(store.isFetchingValue)
-            .accessibilityIdentifier("detail.copy")
-
+            // The system's glass styles, not the app's own: these sit in a
+            // bar the window draws, where a hand-painted background reads as
+            // a second control behind the first. Copying is not here — it is
+            // on the value panel itself, where the value is.
             Button("New version …") {
                 store.sheet = .newVersion(secret.name)
             }
-            .buttonStyle(SecondaryButtonStyle(height: 24))
+            .buttonStyle(.glass)
+            .controlSize(.small)
             .accessibilityIdentifier("detail.newVersion")
 
             Menu {
@@ -81,11 +79,10 @@ struct DetailActionBar: View {
                 }
             } label: {
                 Image(systemName: "ellipsis")
-                    .font(.system(size: 12, weight: .semibold))
-                    .foregroundStyle(Palette.textControl)
-                    .frame(width: 24, height: 24)
             }
-            .menuStyle(.borderlessButton)
+            .menuStyle(.button)
+            .buttonStyle(.glass)
+            .controlSize(.small)
             .menuIndicator(.hidden)
             .fixedSize()
             .accessibilityIdentifier("detail.more")
