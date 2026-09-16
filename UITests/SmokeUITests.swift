@@ -103,9 +103,9 @@ final class SmokeUITests: XCTestCase {
     @MainActor
     func testTheSidebarSelectsAFilter() {
         let app = launch()
-        let row = app.staticTexts["sidebar.filter.noRollback"].firstMatch
+        let row = app.staticTexts["sidebar.filter.multipleVersions"].firstMatch
         XCTAssertTrue(row.waitForExistence(timeout: 10))
         row.click()
-        XCTAssertTrue(app.staticTexts["No rollback version"].firstMatch.exists)
+        XCTAssertTrue(app.staticTexts["Multiple versions"].firstMatch.exists)
     }
 }

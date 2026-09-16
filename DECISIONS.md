@@ -317,8 +317,8 @@ display of one value into a choice and moves the setting out of a single field.
 **Decision.** The version table shows the version number, the `active` and
 `latest` badges and the row actions. The design's "date · author" column and the
 6-character digest are not built, and the list cards carry no relative age. The
-sidebar's smart filters are *No rollback version* (one version), *Latest is not
-active* (a newer version exists than the one in use) and *Multiple versions*.
+sidebar's smart filters are *Latest is not active* (a newer version exists than
+the one in use) and *Multiple versions*.
 
 **Reasoning.** `/api/list` returns `Name`, `Versions` and `ActiveVersion` and
 nothing else — confirmed against the production server on 2026-09-16, 286
@@ -339,6 +339,13 @@ secret.
 
 **Trigger to re-open.** setec carrying per-version metadata in its API, which
 restores the columns and the two time-based filters together.
+
+**Revisions.** 2026-09-16: a third filter, *No rollback version*, was dropped.
+It selected every secret with exactly one version — 268 of 288 in the
+production store, so it named 93% of the sidebar's own contents — and it is the
+exact complement of *Multiple versions*, which names the 20 that are worth
+looking at. Two rows that partition the store between them are one row and its
+negation, and the useful half is the smaller one.
 
 ---
 

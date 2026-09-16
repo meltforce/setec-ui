@@ -105,7 +105,6 @@ struct SidebarView: View {
 
     private func color(for filter: SmartFilter) -> Color {
         switch filter {
-        case .noRollback: Palette.textMeta
         case .latestNotActive: Palette.filterDot
         case .multipleVersions: Palette.granted
         }

@@ -69,7 +69,6 @@ struct Secret: Identifiable, Hashable, Sendable {
 /// two of those need a timestamp the API does not carry, so they are replaced
 /// by conditions `/api/list` can answer (`DECISIONS.md`, 2026-09-16).
 enum SmartFilter: String, CaseIterable, Identifiable, Sendable {
-    case noRollback
     case latestNotActive
     case multipleVersions
 
@@ -79,7 +78,6 @@ enum SmartFilter: String, CaseIterable, Identifiable, Sendable {
 
     var title: String {
         switch self {
-        case .noRollback: "No rollback version"
         case .latestNotActive: "Latest is not active"
         case .multipleVersions: "Multiple versions"
         }
@@ -88,7 +86,6 @@ enum SmartFilter: String, CaseIterable, Identifiable, Sendable {
     /// What the row means, for the list header's subtitle.
     var explanation: String {
         switch self {
-        case .noRollback: "One version only — there is nothing to activate instead."
         case .latestNotActive: "A newer version exists than the one consumers fetch."
         case .multipleVersions: "More than one version is stored."
         }
@@ -96,7 +93,6 @@ enum SmartFilter: String, CaseIterable, Identifiable, Sendable {
 
     func matches(_ secret: Secret) -> Bool {
         switch self {
-        case .noRollback: !secret.hasRollback
         case .latestNotActive: !secret.latestIsActive
         case .multipleVersions: secret.hasRollback
         }

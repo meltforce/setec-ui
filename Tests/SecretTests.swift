@@ -28,7 +28,6 @@ final class SecretTests: XCTestCase {
     func testFiltersMatchWhatTheirTitlesClaim() {
         let single = Secret(name: "a/b", versions: [1], activeVersion: 1)
         let stale = Secret(name: "a/c", versions: [1, 2], activeVersion: 1)
-        XCTAssertTrue(SmartFilter.noRollback.matches(single))
         XCTAssertFalse(SmartFilter.multipleVersions.matches(single))
         XCTAssertTrue(SmartFilter.latestNotActive.matches(stale))
         XCTAssertTrue(SmartFilter.multipleVersions.matches(stale))

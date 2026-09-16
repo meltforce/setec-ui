@@ -31,7 +31,7 @@ final class SecretStoreTests: XCTestCase {
         store.scope = .group("docker")
         store.scope = .filter(.latestNotActive)
         XCTAssertEqual(store.visible.map(\.name), ["homelab/forgejo-api-token"])
-        XCTAssertEqual(store.count(for: .noRollback), 2)
+        XCTAssertEqual(store.count(for: .multipleVersions), 4)
     }
 
     func testSearchOverridesScopeAndSearchesEverySecret() {
