@@ -20,7 +20,7 @@ XCB         := $(shell command -v xcbeautify 2>/dev/null)
 PIPE        := $(if $(XCB),| $(XCB) --quiet,)
 XCODEBUILD  := xcodebuild -project "$(PROJECT)" -scheme "$(SCHEME)" -configuration "$(CONFIG)" -derivedDataPath "$(DERIVED)" -destination 'platform=macOS,arch=arm64'
 
-.PHONY: project build run stop verify test format lint screenshot screenshot-native screenshot-self inspect click type key at eval logs install notarize clean help
+.PHONY: project build run stop check verify test test-unit format lint screenshot screenshot-native screenshot-self inspect click type key at eval logs install notarize clean help
 
 help:
 	@grep -E '^[a-z-]+:.*## ' $(MAKEFILE_LIST) | sed 's/:.*## /\t/' | column -t -s $$'\t'
@@ -47,7 +47,17 @@ lint: ## swiftformat --lint and swiftlint, no changes
 test: project ## Unit and UI tests
 	set -o pipefail; $(XCODEBUILD) test $(PIPE)
 
-verify: lint build test ## lint, build, test — the completion gate
+test-unit: project ## Unit tests only, without the UI bundle
+	set -o pipefail; $(XCODEBUILD) test -only-testing:$(APP_MODULE)Tests $(PIPE)
+
+# Two gates, because they cost two different things. The unit bundle runs in
+# well under a second and the UI bundle launches the app once per test, which
+# is a minute and more — too slow to sit behind every edit, and the reason the
+# full run belongs before an install rather than after every change.
+check: lint build test-unit ## lint, build, unit tests — the gate for a change
+	@echo "check: green for $(APP_NAME) ($(CONFIG))"
+
+verify: lint build test ## check plus the UI tests — the gate before install and release
 	@echo "verify: green for $(APP_NAME) ($(CONFIG))"
 
 # ---------------------------------------------------------------------------
@@ -128,7 +138,7 @@ eval: ## Send CMD to the DEBUG build's DebugServer: state | action <name> <json>
 # Install and distribute
 # ---------------------------------------------------------------------------
 
-install: ## Release build into /Applications
+install: verify ## Full verify, then a Release build into /Applications
 	$(MAKE) build CONFIG=Release
 	$(MAKE) stop
 	ditto "$(DERIVED)/Build/Products/Release/$(APP_NAME).app" "/Applications/$(APP_NAME).app"

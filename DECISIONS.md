@@ -14,40 +14,48 @@ place with the old form recorded under revisions — the entry is not duplicated
 
 ---
 
-## 2026-09-16 — reuse is found by an explicit scan that keeps digests, not values
+## 2026-09-16 — reuse detection is a report, not a smart filter
 
 **Decided:** 2026-09-16
 
-**Decision.** The sidebar carries a fifth smart filter, *Reused value*. Unlike
-the other four it cannot be answered from `/api/list`, so it is empty until the
-operator presses "Scan N secrets" in the list column. The scan fetches every
-secret's active value eight at a time, hashes each response with SHA-256 as it
-arrives, and keeps the digest alone; the plaintext lives no longer than the
-expression that hashes it. Digests are memory-only and are dropped when the
-server changes. The sidebar shows a dash rather than a zero before a scan.
+**Decision.** The sidebar's smart filters answer from `/api/list` alone. Reuse
+detection is not one of them: it becomes a report the operator calls explicitly,
+in the shape 1Password's Watchtower has, and it is open work
+([`ROADMAP.md`](ROADMAP.md)).
 
-**Reasoning.** Two secrets hold the same value or they do not, and setec has no
-way to answer that without handing over both values: `/api/list` carries no
-digest, and there is no compare endpoint. Hashing is what makes the comparison
-safe to hold, but it does not make the *reading* free — the scan is the one
-operation in the app that reads values the operator did not point at, and every
-read is a get the server can audit. That is why it never starts on its own, why
-the prompt states the cost in the number of secrets it will read, and why the
-count is a dash until it has run.
+**Reasoning.** Two secrets hold the same value or they do not, and setec cannot
+answer that without handing over both values: `/api/list` carries no digest and
+there is no compare endpoint. Hashing makes the comparison safe to hold — it
+does not make the reading free. Every value read is a `get` the server can
+audit, and reading them is the one thing the rest of the app never does.
 
-A digest is not storable either: setec secrets include values with little
-entropy, and a stored SHA-256 of one is guessable offline. Nothing is written
-to disk.
+A sidebar row is the wrong place for that. The four filters next to it cost
+nothing and are always true; a fifth that is empty until several hundred
+audited reads have run does not belong in the same list, and a row that reads
+"–" until pressed teaches the wrong thing about what the sidebar is. A report
+is called deliberately, can state its cost before it runs, and can show its
+result in the form the result actually has — groups of secrets that share a
+value, rather than a flat list in which the pairing is invisible.
 
-**Alternative considered.** Scanning automatically on launch or after each
-refresh. Rejected: it would turn every launch into several hundred audited
-reads of values nobody asked to see, which is the opposite of the rule the rest
-of the app follows. Also rejected: comparing only within the selected group,
-which would miss exactly the reuse that matters — the same value under two
-different prefixes, which is what the first live scan found.
+**Alternative considered.** Keeping it as a filter with the scan behind a
+button in the list column, which is what was built and measured first. Rejected
+on the operator's reading: the affordance promised a filter and delivered an
+audit.
+
+**What the measurement showed**, because it decides how big the report is: a
+scan of the production store on 2026-09-16 read 288 values in under four
+seconds at eight requests in parallel and found 29 secrets sharing a value with
+at least one other — among them `claude/docker-pat` with `homelab/docker-pat`
+and `docker/rustfs/access-key` with `docker/rustfs/secret-key`.
 
 **Trigger to re-open.** setec exposing a digest in `/api/list` or `/api/info`,
-which would make the filter free and the scan unnecessary.
+which makes the comparison free and puts the question back in reach of a filter.
+
+**Revisions.** 2026-09-16, same day: first decided as a fifth smart filter
+*Reused value*, with the scan behind a button in the list column and digests
+held in memory. Withdrawn before it was used. The working implementation —
+`ReuseScan`, `SecretStore.scanForReuse`, the progress and prompt states and
+their tests — is commit `282a7b6` and is what the report starts from.
 
 ---
 

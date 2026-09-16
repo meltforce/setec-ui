@@ -9,22 +9,14 @@ struct SecretListView: View {
     var body: some View {
         @Bindable var store = store
         Group {
-            if let progress = store.reuseProgress {
-                scanning(progress)
-            } else if needsScan {
-                scanPrompt
-            } else if store.visible.isEmpty {
+            if store.visible.isEmpty {
                 emptyState
             } else {
                 List(store.visible, selection: $store.selectedName) { secret in
-                    SecretCard(
-                        secret: secret,
-                        selected: secret.name == store.selectedName,
-                        reused: store.reusedNames.contains(secret.name)
-                    )
-                    .tag(secret.name)
-                    .listRowInsets(EdgeInsets(top: 1, leading: 6, bottom: 1, trailing: 6))
-                    .listRowSeparator(.hidden)
+                    SecretCard(secret: secret, selected: secret.name == store.selectedName)
+                        .tag(secret.name)
+                        .listRowInsets(EdgeInsets(top: 1, leading: 6, bottom: 1, trailing: 6))
+                        .listRowSeparator(.hidden)
                 }
                 .listStyle(.plain)
                 .accessibilityIdentifier("secrets.list")
@@ -59,44 +51,6 @@ struct SecretListView: View {
             .fixedSize()
             .accessibilityIdentifier("secrets.sort")
         }
-    }
-
-    /// True while the reuse filter is selected and no scan has been made. The
-    /// column says what the scan costs instead of showing an empty result,
-    /// because an empty list here would claim that nothing is reused.
-    private var needsScan: Bool {
-        store.scope == .filter(.reusedValue) && store.reuseScan == nil && store.query.isEmpty
-    }
-
-    private var scanPrompt: some View {
-        ContentUnavailableView {
-            Label("Not scanned yet", systemImage: "doc.on.doc")
-        } description: {
-            Text(verbatim: """
-            Finding reused values means reading every value: setec's list carries no digest, so \
-            this fetches all \(store.secrets.count) secrets, hashes each one and keeps the digest \
-            alone. Every read is a get the server can audit. Nothing is written to disk.
-            """)
-        } actions: {
-            Button("Scan \(store.secrets.count) secrets") {
-                Task { await store.scanForReuse() }
-            }
-            .accessibilityIdentifier("secrets.scanReuse")
-        }
-    }
-
-    private func scanning(_ progress: SecretStore.ReuseProgress) -> some View {
-        VStack(spacing: 12) {
-            ProgressView(value: Double(progress.done), total: Double(progress.total))
-                .frame(width: 180)
-            Text(verbatim: "Read \(progress.done) of \(progress.total)")
-                .font(Typeface.meta)
-                .foregroundStyle(Palette.textQuaternary)
-            Button("Stop") { store.cancelReuseScan() }
-                .accessibilityIdentifier("secrets.scanReuse.stop")
-        }
-        .frame(maxWidth: .infinity, maxHeight: .infinity)
-        .accessibilityIdentifier("secrets.scanning")
     }
 
     private var sortBinding: Binding<SecretSort> {
@@ -143,7 +97,6 @@ struct SecretListView: View {
 struct SecretCard: View {
     let secret: Secret
     let selected: Bool
-    var reused = false
 
     var body: some View {
         VStack(alignment: .leading, spacing: 5) {
@@ -165,11 +118,7 @@ struct SecretCard: View {
                     .font(Typeface.meta)
                     .foregroundStyle(Palette.textQuaternary)
                 Spacer(minLength: 0)
-                if reused {
-                    Text("reused")
-                        .font(Typeface.meta)
-                        .foregroundStyle(Palette.destructiveLabel)
-                } else if !secret.latestIsActive {
+                if !secret.latestIsActive {
                     Text(verbatim: "v\(secret.latestVersion) not active")
                         .font(Typeface.meta)
                         .foregroundStyle(Palette.rotationDue)

@@ -93,7 +93,6 @@ struct DetailActionBar: View {
 /// The secret's name and what the metadata says about it, at the top of the
 /// scrollable body.
 struct DetailTitle: View {
-    @Environment(SecretStore.self) private var store
     let secret: Secret
 
     var body: some View {
@@ -109,15 +108,6 @@ struct DetailTitle: View {
         }
     }
 
-    /// Only after a scan, and only for a secret the scan found a twin for.
-    private var sharingNote: String? {
-        guard let group = store.reuseScan?.groups.first(where: { $0.contains(secret.name) }) else { return nil }
-        let others = group.count - 1
-        return others == 1
-            ? "same value as 1 other secret"
-            : "same value as \(others) other secrets"
-    }
-
     private var metaRow: some View {
         HStack(spacing: 6) {
             Text("Active:")
@@ -131,12 +121,6 @@ struct DetailTitle: View {
                 Text(verbatim: "·")
                 Text(verbatim: "v\(secret.latestVersion) is newer and not active")
                     .foregroundStyle(Palette.rotationDue)
-            }
-            if let sharing = sharingNote {
-                Text(verbatim: "·")
-                Text(verbatim: sharing)
-                    .foregroundStyle(Palette.destructiveLabel)
-                    .accessibilityIdentifier("detail.reused")
             }
         }
         .font(Typeface.label)

@@ -45,7 +45,8 @@ the local `tailscaled`, so there is no login screen and no token to enter.
 
 ```bash
 make run        # build Debug, launch, wait for the window
-make verify     # lint, build, unit and UI tests
+make check      # lint, build, unit tests — run this after a change
+make verify     # check plus the UI tests — run this before make install
 ```
 
 ## Documents

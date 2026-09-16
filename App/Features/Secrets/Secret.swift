@@ -72,7 +72,6 @@ enum SmartFilter: String, CaseIterable, Identifiable, Sendable {
     case noRollback
     case latestNotActive
     case multipleVersions
-    case reusedValue
 
     var id: String {
         rawValue
@@ -83,7 +82,6 @@ enum SmartFilter: String, CaseIterable, Identifiable, Sendable {
         case .noRollback: "No rollback version"
         case .latestNotActive: "Latest is not active"
         case .multipleVersions: "Multiple versions"
-        case .reusedValue: "Reused value"
         }
     }
 
@@ -93,26 +91,15 @@ enum SmartFilter: String, CaseIterable, Identifiable, Sendable {
         case .noRollback: "One version only — there is nothing to activate instead."
         case .latestNotActive: "A newer version exists than the one consumers fetch."
         case .multipleVersions: "More than one version is stored."
-        case .reusedValue: "The active value is identical to another secret's."
         }
     }
 
-    /// `reusedValue` is the one filter that cannot be answered from the
-    /// metadata: it needs the values, which only a scan has. Without one it
-    /// matches nothing, and the list column says why instead of showing an
-    /// empty result.
-    func matches(_ secret: Secret, reusedNames: Set<String> = []) -> Bool {
+    func matches(_ secret: Secret) -> Bool {
         switch self {
         case .noRollback: !secret.hasRollback
         case .latestNotActive: !secret.latestIsActive
         case .multipleVersions: secret.hasRollback
-        case .reusedValue: reusedNames.contains(secret.name)
         }
-    }
-
-    /// True when the filter is answered by a scan rather than by `/api/list`.
-    var needsValues: Bool {
-        self == .reusedValue
     }
 }
 

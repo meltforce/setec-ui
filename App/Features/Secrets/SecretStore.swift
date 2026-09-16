@@ -77,17 +77,6 @@ final class SecretStore {
 
     var sheet: Sheet?
 
-    /// The last reuse scan, and the progress of one that is running. Both are
-    /// memory-only and are dropped when the server changes.
-    private(set) var reuseScan: ReuseScan?
-    private(set) var reuseProgress: ReuseProgress?
-    private var reuseTask: Task<Void, Never>?
-
-    struct ReuseProgress: Equatable {
-        var done: Int
-        var total: Int
-    }
-
     private(set) var server: URL
     private var client: SetecClient
     private var hideTask: Task<Void, Never>?
@@ -125,92 +114,7 @@ final class SecretStore {
         secrets = []
         selectedName = nil
         loading = .idle
-        cancelReuseScan()
-        reuseScan = nil
         Task { await refresh() }
-    }
-
-    /// How many values the scan fetches at once. setec answers one request per
-    /// value and there are hundreds of them; eight keeps the scan short
-    /// without making the server's audit log look like a sweep.
-    private static let reuseConcurrency = 8
-
-    /// Fetches every secret's active value, hashes it, and keeps only the
-    /// digest. This is the only operation in the app that reads values the
-    /// operator did not point at, which is why it never starts on its own.
-    func scanForReuse() async {
-        guard reuseTask == nil else { return }
-        let names = secrets.map(\.name)
-        guard !names.isEmpty else { return }
-        reuseProgress = ReuseProgress(done: 0, total: names.count)
-        lastCall = "POST /api/get × \(names.count)"
-
-        let task = Task { [client] in
-            var digests: [String: String] = [:]
-            var failures: [String: String] = [:]
-            var index = 0
-            await withTaskGroup(of: (String, Result<String, Error>).self) { group in
-                func addNext() {
-                    guard index < names.count else { return }
-                    let name = names[index]
-                    index += 1
-                    group.addTask {
-                        do {
-                            // The plaintext lives exactly as long as this
-                            // expression: it is hashed here and not returned.
-                            let value = try await client.get(name: name).value
-                            return (name, .success(ReuseScan.digest(of: value)))
-                        } catch {
-                            return (name, .failure(error))
-                        }
-                    }
-                }
-                for _ in 0 ..< min(Self.reuseConcurrency, names.count) {
-                    addNext()
-                }
-                while let (name, result) = await group.next() {
-                    switch result {
-                    case let .success(digest): digests[name] = digest
-                    case let .failure(error):
-                        failures[name] = (error as? LocalizedError)?.errorDescription
-                            ?? error.localizedDescription
-                    }
-                    await MainActor.run {
-                        self.reuseProgress = ReuseProgress(done: digests.count + failures.count, total: names.count)
-                    }
-                    if Task.isCancelled {
-                        break
-                    }
-                    addNext()
-                }
-            }
-            let scan = ReuseScan(
-                digests: digests,
-                failures: failures,
-                finished: .now,
-                attempted: names.count
-            )
-            await MainActor.run {
-                if !Task.isCancelled {
-                    self.reuseScan = scan
-                }
-                self.reuseProgress = nil
-                self.reuseTask = nil
-                Log.app.notice("reuse scan: \(scan.digests.count) read, \(scan.failures.count) failed")
-            }
-        }
-        reuseTask = task
-        await task.value
-    }
-
-    func cancelReuseScan() {
-        reuseTask?.cancel()
-        reuseTask = nil
-        reuseProgress = nil
-    }
-
-    var reusedNames: Set<String> {
-        reuseScan?.reusedNames ?? []
     }
 
     func loadIdentity() async {
@@ -430,8 +334,6 @@ final class SecretStore {
             "lastCall": lastCall,
             "problem": problem ?? NSNull(),
             "sort": sort.rawValue,
-            "reuseScanned": reuseScan?.digests.count ?? NSNull(),
-            "reusedNames": reuseScan?.reusedNames.count ?? NSNull(),
             "sheet": sheet?.id ?? NSNull(),
         ]
     }

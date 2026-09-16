@@ -44,10 +44,8 @@ final class SecretStoreWriteTests: XCTestCase {
         StubURLProtocol.exchange.answer("/api/activate", json: "null")
         let created = await store.createSecret(name: "a/new", value: "s3cret", activate: true)
         XCTAssertTrue(created)
-        // `use(server:)` in another test starts a refresh of its own, and the
-        // exchange is shared, so the order is asserted on the writes alone.
-        let calls = StubURLProtocol.exchange.requests.map(\.path).filter { $0 != "/api/list" }
-        XCTAssertEqual(calls, ["/api/put", "/api/activate"])
+        let calls = StubURLProtocol.exchange.requests.map(\.path)
+        XCTAssertEqual(calls.prefix(2).map(\.self), ["/api/put", "/api/activate"])
         let activate = StubURLProtocol.exchange.lastBody(to: "/api/activate")
         XCTAssertEqual(activate?["Version"] as? Int, 7, "the version the server assigned, not a guess")
         XCTAssertEqual(store.selectedName, "a/new")
@@ -98,45 +96,6 @@ final class SecretStoreWriteTests: XCTestCase {
         XCTAssertFalse(created)
         XCTAssertEqual(store.problem, "Not permitted for a/new")
         XCTAssertEqual(store.secrets.map(\.name), ["a/b"])
-    }
-
-    func testTheReuseScanKeepsDigestsAndFindsTheSharedValue() async {
-        let three = #"[{"Name":"a/x","Versions":[1],"ActiveVersion":1},"#
-            + #"{"Name":"b/x","Versions":[1],"ActiveVersion":1},"#
-            + #"{"Name":"c/x","Versions":[1],"ActiveVersion":1}]"#
-        answerList(three)
-        // Every get answers the same value, so all three share a digest.
-        StubURLProtocol.exchange.answer("/api/get", json: #"{"Value":"c2FtZQ==","Version":1}"#)
-        await store.refresh()
-        XCTAssertNil(store.count(for: .reusedValue), "no scan, no answer")
-        await store.scanForReuse()
-        let scan = try? XCTUnwrap(store.reuseScan)
-        XCTAssertEqual(scan?.digests.count, 3)
-        XCTAssertEqual(scan?.digests["a/x"], ReuseScan.digest(of: "same"))
-        XCTAssertEqual(store.reusedNames, ["a/x", "b/x", "c/x"])
-        XCTAssertEqual(store.count(for: .reusedValue), 3)
-        store.scope = .filter(.reusedValue)
-        XCTAssertEqual(store.visible.count, 3)
-    }
-
-    func testAScanRecordsAFailureRatherThanCountingItAsUnique() async {
-        answerList(#"[{"Name":"a/x","Versions":[1],"ActiveVersion":1}]"#)
-        StubURLProtocol.exchange.answer("/api/get", status: 403, json: "null")
-        await store.refresh()
-        await store.scanForReuse()
-        XCTAssertEqual(store.reuseScan?.digests.count, 0)
-        XCTAssertEqual(store.reuseScan?.failures.keys.first, "a/x")
-        XCTAssertEqual(store.reuseScan?.attempted, 1)
-    }
-
-    func testChangingTheServerDropsTheScan() async throws {
-        answerList()
-        StubURLProtocol.exchange.answer("/api/get", json: #"{"Value":"c2FtZQ==","Version":1}"#)
-        await store.refresh()
-        await store.scanForReuse()
-        XCTAssertNotNil(store.reuseScan)
-        try store.use(server: XCTUnwrap(URL(string: "https://other.example")))
-        XCTAssertNil(store.reuseScan, "digests belong to the server they were read from")
     }
 
     func testRevealHoldsTheValueAndHideDropsIt() async {

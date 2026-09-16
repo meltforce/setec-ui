@@ -63,15 +63,12 @@ struct SidebarView: View {
         )
     }
 
-    /// `count` is nil for a filter that has not been given the values it
-    /// needs; the row then shows a dash, because "none" and "not looked" are
-    /// different answers.
     private func row(
         for scope: Scope,
         glyph: String? = nil,
         dot: Color? = nil,
         label: String,
-        count: Int?
+        count: Int
     ) -> some View {
         HStack(spacing: 8) {
             if let dot {
@@ -89,7 +86,7 @@ struct SidebarView: View {
                 .font(Typeface.control)
                 .lineLimit(1)
             Spacer(minLength: 6)
-            Text(verbatim: count.map(String.init) ?? "–")
+            Text(verbatim: "\(count)")
                 .font(Typeface.badge)
                 .tabularDigits()
                 .foregroundStyle(.secondary)
@@ -111,7 +108,6 @@ struct SidebarView: View {
         case .noRollback: Palette.textMeta
         case .latestNotActive: Palette.filterDot
         case .multipleVersions: Palette.granted
-        case .reusedValue: Palette.destructiveLabel
         }
     }
 }
