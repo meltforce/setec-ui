@@ -110,12 +110,44 @@ final class AccessStoreTests: XCTestCase {
         }
     }
 
+    /// The scopes come back with the policy, so the dialog can show what the
+    /// configured client actually carries instead of asserting what it should.
+    func testTheGrantedScopesAreReadBackFromTheTokenResponse() async {
+        StubURLProtocol.exchange.answer("/api/get", json: #"{"Value":"YQ==","Version":1}"#)
+        StubURLProtocol.exchange.answer(
+            "/api/v2/oauth/token",
+            json: #"{"access_token":"t","scope":"dns:read policy_file:read","token_type":"Bearer"}"#
+        )
+        StubURLProtocol.exchange.answer("/api/v2/tailnet/-/acl", json: #"{"groups":{},"grants":[]}"#)
+        let store = AccessStore(client: client(id: "a/id", secret: "a/secret"))
+        await store.load()
+        XCTAssertEqual(store.state, .loaded)
+        XCTAssertEqual(store.scopes, ["dns:read", "policy_file:read"])
+        XCTAssertTrue(store.scopes.contains(TailnetPolicyClient.requiredScope))
+    }
+
+    func testAClientWithoutThePolicyScopeIsReportedAsSuchNotAsA403() async {
+        StubURLProtocol.exchange.answer("/api/get", json: #"{"Value":"YQ==","Version":1}"#)
+        StubURLProtocol.exchange.answer(
+            "/api/v2/oauth/token",
+            json: #"{"access_token":"t","scope":"dns:read devices:core:read","token_type":"Bearer"}"#
+        )
+        let store = AccessStore(client: client(id: "a/id", secret: "a/secret"))
+        await store.load()
+        guard case let .failed(message) = store.state else {
+            return XCTFail("expected a failure, got \(store.state)")
+        }
+        XCTAssertTrue(message.contains("policy_file:read"), message)
+        XCTAssertTrue(message.contains("dns:read"), message)
+    }
+
     func testSwitchingTheCredentialOffClearsWhatWasRead() async {
         let store = AccessStore.preview()
         XCTAssertEqual(store.state, .loaded)
         await store.use(client: nil)
         XCTAssertEqual(store.state, .disabled)
         XCTAssertNil(store.policy)
+        XCTAssertTrue(store.scopes.isEmpty)
         XCTAssertTrue(store.rows(in: .group("docker")).isEmpty)
     }
 }

@@ -16,6 +16,15 @@ struct TailnetPolicyClient: Sendable {
     /// The capability label setec matches on.
     static let capability = "tailscale.com/cap/secrets"
 
+    /// The one OAuth scope this app needs. It calls a single endpoint,
+    /// `GET /api/v2/tailnet/-/acl`, and nothing else — no device, DNS or
+    /// route call — so a client scoped to anything more is scoped too widely
+    /// for it. Measured 2026-09-16: the fleet's shared read-only client
+    /// returns `devices:core:read devices:posture_attributes:read
+    /// devices:routes:read policy_file:read dns:read services:read`, of which
+    /// only the fourth is used here.
+    static let requiredScope = "policy_file:read"
+
     var setec: SetecClient
     var session: URLSession
     /// The setec entries holding the OAuth client, from `AccessSetting`.
@@ -27,10 +36,17 @@ struct TailnetPolicyClient: Sendable {
         self.session = session
     }
 
+    /// The policy, and the scopes the token that fetched it actually carries.
+    struct Result: Sendable {
+        var policy: TailnetPolicy
+        var scopes: [String]
+    }
+
     enum Failure: LocalizedError {
         case credential(String)
         case token(Int)
         case policy(Int)
+        case missingScope([String])
         case decoding(String)
 
         var errorDescription: String? {
@@ -41,13 +57,23 @@ struct TailnetPolicyClient: Sendable {
                     ? "The OAuth exchange refused the client (HTTP 401) — the two entries hold something else"
                     : "The OAuth exchange answered HTTP \(code)"
             case let .policy(code): "The policy file answered HTTP \(code)"
+            case let .missingScope(granted):
+                """
+                The OAuth client has no \(TailnetPolicyClient.requiredScope) scope. \
+                It carries \(granted.isEmpty ? "none" : granted.joined(separator: ", ")).
+                """
             case let .decoding(message): "The policy file did not parse: \(message)"
             }
         }
     }
 
-    func loadPolicy() async throws -> TailnetPolicy {
-        let token = try await bearerToken()
+    func loadPolicy() async throws -> Result {
+        let (token, scopes) = try await bearerToken()
+        // Reported as a missing scope rather than as a bare 403: the client is
+        // valid, it simply may not read this.
+        guard scopes.isEmpty || scopes.contains(Self.requiredScope) else {
+            throw Failure.missingScope(scopes)
+        }
         var request = URLRequest(url: Self.policyURL)
         request.setValue("Bearer \(token)", forHTTPHeaderField: "Authorization")
         // The API answers HuJSON — JSON with comments and trailing commas —
@@ -55,11 +81,19 @@ struct TailnetPolicyClient: Sendable {
         request.setValue("application/json", forHTTPHeaderField: "Accept")
         let (data, response) = try await session.data(for: request)
         let code = (response as? HTTPURLResponse)?.statusCode ?? 0
-        guard code == 200 else { throw Failure.policy(code) }
-        return try TailnetPolicy(data: data)
+        guard code == 200 else {
+            if code == 403, !scopes.contains(Self.requiredScope) {
+                throw Failure.missingScope(scopes)
+            }
+            throw Failure.policy(code)
+        }
+        return try Result(policy: TailnetPolicy(data: data), scopes: scopes)
     }
 
-    private func bearerToken() async throws -> String {
+    /// Returns the token and the scopes the server says it carries. The scope
+    /// list is what the dialog shows, so a client that is scoped wrongly can
+    /// be seen rather than guessed at.
+    private func bearerToken() async throws -> (token: String, scopes: [String]) {
         let id: String
         let secret: String
         do {
@@ -88,7 +122,10 @@ struct TailnetPolicyClient: Sendable {
         else {
             throw Failure.decoding("no access_token in the token response")
         }
-        return token
+        let scopes = (object["scope"] as? String)?
+            .split(separator: " ")
+            .map(String.init) ?? []
+        return (token, scopes)
     }
 }
 

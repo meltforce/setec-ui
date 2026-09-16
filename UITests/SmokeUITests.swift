@@ -124,6 +124,24 @@ final class SmokeUITests: XCTestCase {
         app.typeKey(.escape, modifierFlags: [])
     }
 
+    /// The rights the OAuth client needs are stated in the dialog that
+    /// configures it, so they do not have to be looked up elsewhere.
+    @MainActor
+    func testTheAccessMatrixSettingsStateTheScopeItNeeds() {
+        let app = launch()
+        app.typeKey(",", modifierFlags: .command)
+        let settings = app.windows["Access matrix"].firstMatch
+        XCTAssertTrue(settings.waitForExistence(timeout: 5) || app.windows.count > 1)
+        app.buttons["Access matrix"].firstMatch.click()
+        let scope = app.staticTexts["settings.access.requiredScope"].firstMatch
+        XCTAssertTrue(scope.waitForExistence(timeout: 5))
+        XCTAssertEqual(scope.value as? String, "policy_file:read")
+        XCTAssertTrue(app.textFields["settings.access.id"].exists)
+        XCTAssertTrue(app.textFields["settings.access.secret"].exists)
+        XCTAssertTrue(app.descendants(matching: .any)
+            .matching(identifier: "settings.access.grantedScopes").firstMatch.exists)
+    }
+
     @MainActor
     func testTheSidebarSelectsAFilter() {
         let app = launch()

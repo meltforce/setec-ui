@@ -20,6 +20,8 @@ final class AccessStore {
 
     private(set) var state: State = .idle
     private(set) var policy: TailnetPolicy?
+    /// What the configured client's token actually carries, once read.
+    private(set) var scopes: [String] = []
     private var client: TailnetPolicyClient?
     private var identityProvider: @MainActor () -> TailnetIdentity?
 
@@ -37,6 +39,7 @@ final class AccessStore {
     func use(client: TailnetPolicyClient?) async {
         self.client = client
         policy = nil
+        scopes = []
         guard client != nil else {
             state = .disabled
             return
@@ -84,9 +87,10 @@ final class AccessStore {
         state = .loading
         do {
             let loaded = try await client.loadPolicy()
-            policy = loaded
+            policy = loaded.policy
+            scopes = loaded.scopes
             state = .loaded
-            Log.app.notice("policy loaded: \(loaded.rules.count) secrets grants")
+            Log.app.notice("policy loaded: \(loaded.policy.rules.count) secrets grants")
         } catch {
             state = .failed((error as? LocalizedError)?.errorDescription ?? error.localizedDescription)
             Log.app.error("policy load failed: \(String(describing: error), privacy: .public)")

@@ -432,6 +432,17 @@ are untouched, which `AccessStoreTests` asserts and which was measured against
 the production server in all three states: a name that does not exist, both
 names blank, and the defaults restored.
 
+2026-09-16, later the same day: the dialog states the rights the client needs
+and shows the ones it has. The app calls exactly one endpoint,
+`GET /api/v2/tailnet/-/acl`, so `policy_file:read` is the whole requirement —
+no device, DNS or route scope. The token response carries the granted scope
+list, so the dialog shows it and marks the one that is used; a client without
+`policy_file:read` is reported as a missing scope rather than as a bare 403.
+Measured 2026-09-16 against the fleet's shared read-only client, which returns
+`devices:core:read devices:posture_attributes:read devices:routes:read
+policy_file:read dns:read services:read` — five scopes wider than this app
+needs, which is the argument for giving it a client of its own.
+
 ---
 
 ## 2026-09-16 — the app is not sandboxed

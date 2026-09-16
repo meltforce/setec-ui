@@ -165,11 +165,55 @@ struct AccessMatrixSettings: View {
                 every action keep working either way; only the grants of other principals need this.
                 """)
             }
+            Section {
+                LabeledContent("Scope needed") {
+                    Text(verbatim: TailnetPolicyClient.requiredScope)
+                        .font(.system(.body, design: .monospaced))
+                        .accessibilityIdentifier("settings.access.requiredScope")
+                }
+                LabeledContent("Reads") {
+                    Text(verbatim: "GET \(TailnetPolicyClient.policyURL.path())")
+                        .font(.system(.body, design: .monospaced))
+                }
+                LabeledContent("Client carries") {
+                    grantedScopes
+                }
+            } header: {
+                Text("Rights")
+            } footer: {
+                Text("""
+                One scope, for one endpoint. The app makes no device, DNS or route call, so a client \
+                scoped to more than this is scoped wider than it needs to be. A client without the \
+                scope is reported as such rather than as a bare 403.
+                """)
+            }
         }
         .formStyle(.grouped)
         .onAppear {
             draftID = storedID
             draftSecret = storedSecret
+        }
+    }
+
+    /// What the configured client actually carries, once a token has been
+    /// exchanged — so a wrongly scoped client can be seen instead of guessed
+    /// at. The scope the app needs is marked.
+    @ViewBuilder
+    private var grantedScopes: some View {
+        if access.scopes.isEmpty {
+            Text(verbatim: access.state == .loaded ? "not reported" : "not read yet")
+                .foregroundStyle(.secondary)
+                .accessibilityIdentifier("settings.access.grantedScopes")
+        } else {
+            VStack(alignment: .trailing, spacing: 2) {
+                ForEach(access.scopes, id: \.self) { scope in
+                    let needed = scope == TailnetPolicyClient.requiredScope
+                    Text(verbatim: needed ? "\(scope)  ✓ used" : scope)
+                        .font(.system(.callout, design: .monospaced))
+                        .foregroundStyle(needed ? Color.primary : .secondary)
+                }
+            }
+            .accessibilityIdentifier("settings.access.grantedScopes")
         }
     }
 
