@@ -7,6 +7,7 @@ import SwiftUI
 struct AccessSection: View {
     @Environment(AccessStore.self) private var access
     let secret: Secret
+    @State private var legendShown = false
 
     private var scope: AccessScope {
         secret.group.map(AccessScope.group) ?? .name(secret.name)
@@ -15,10 +16,20 @@ struct AccessSection: View {
     var body: some View {
         VStack(alignment: .leading, spacing: 10) {
             SectionHeader(title: "Access in \(scope.title)") {
-                Text(verbatim: sourceLabel)
-                    .font(Typeface.meta)
-                    .foregroundStyle(Palette.textQuaternary)
-                    .accessibilityIdentifier("access.source")
+                HStack(spacing: 12) {
+                    Button(legendShown ? "Hide meanings" : "What these mean") {
+                        legendShown.toggle()
+                    }
+                    .buttonStyle(LinkButtonStyle(size: 11.5))
+                    .accessibilityIdentifier("access.legend.toggle")
+                    Text(verbatim: sourceLabel)
+                        .font(Typeface.meta)
+                        .foregroundStyle(Palette.textQuaternary)
+                        .accessibilityIdentifier("access.source")
+                }
+            }
+            if legendShown {
+                legend
             }
             content
         }
@@ -72,6 +83,33 @@ struct AccessSection: View {
         }
     }
 
+    /// The column headings are abbreviated and two of them name setec
+    /// operations that have no counterpart in this app, so what each one
+    /// permits is spelled out here. It is a disclosure rather than a tooltip:
+    /// neither `.help` on a `Text` nor an `NSView` overlay carrying a
+    /// `toolTip` produced one in this window (`CLAUDE.md` § Gotchas).
+    private var legend: some View {
+        VStack(alignment: .leading, spacing: 6) {
+            ForEach(SecretCapability.allCases) { capability in
+                HStack(alignment: .firstTextBaseline, spacing: 8) {
+                    Text(verbatim: capability.columnTitle)
+                        .font(Typeface.mono(11.5, .semibold))
+                        .foregroundStyle(Palette.textControl)
+                        .frame(width: 58, alignment: .leading)
+                    Text(verbatim: capability.explanation)
+                        .font(Typeface.meta)
+                        .foregroundStyle(Palette.textBody)
+                        .fixedSize(horizontal: false, vertical: true)
+                    Spacer(minLength: 0)
+                }
+            }
+        }
+        .padding(.horizontal, 14)
+        .padding(.vertical, 12)
+        .panelSurface(radius: 8, fill: Palette.insetPanel, ring: Palette.subtleRing)
+        .accessibilityIdentifier("access.legend")
+    }
+
     /// The policy grants actions that have no column — `list` is the one this
     /// tailnet uses. They are named below the matrix rather than dropped,
     /// because a matrix that omits a granted action states something false.
@@ -117,7 +155,6 @@ struct AccessSection: View {
                     .font(Typeface.mono(10.5))
                     .foregroundStyle(Palette.textQuaternary)
                     .frame(width: 74)
-                    .tooltip(capability.explanation)
             }
         }
         .padding(.horizontal, 14)

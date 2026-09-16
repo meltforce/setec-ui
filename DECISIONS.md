@@ -89,25 +89,39 @@ Rejected: ⌘R means reload across macOS, and Refresh is the window-wide action.
 
 ---
 
-## 2026-09-16 — `.help` is replaced by an AppKit tooltip
+## 2026-09-16 — the access matrix explains its columns inline, not in a tooltip
 
 **Decided:** 2026-09-16
 
-**Decision.** `App/Components/Tooltip.swift` provides `.tooltip(_:)`, which
-overlays an `NSView` carrying a `toolTip`. The access matrix's column headings
-use it. `.help` stays on controls, where it works.
+**Decision.** The matrix's section header carries a "What these mean" link that
+discloses a legend: the six column headings with one line each on what the
+action permits. No tooltip is used anywhere in the app, and
+`App/Components/Tooltip.swift` is deleted.
 
-**Reasoning.** `.help` on a plain `Text` produced no tooltip, with or without a
-`contentShape` — the operator reported it and a hover of three seconds over the
-headings produced no tooltip window in `CGWindowListCopyWindowInfo`. AppKit's
-`toolTip` is the mechanism the system itself uses, so the delay, the placement
-and the dismissal are not reimplemented.
+**Reasoning.** Two mechanisms were tried and neither produced a tooltip in this
+window. `.help` on a plain `Text` shows nothing, with or without a
+`contentShape`. An `NSView` overlay carrying a `toolTip` — the mechanism AppKit
+itself uses — shows nothing either; the operator reported both, and no tooltip
+window appeared in `CGWindowListCopyWindowInfo` during a three-second hover.
 
-**Alternative considered.** Making each heading a `Button` with a plain style,
-because `.help` works on controls. Rejected: a button that performs nothing is
-a control that lies about being one.
+Beyond the mechanism: the question that started this was "what does `c-ver`
+mean", asked of an abbreviation the reader had no way to expand. An answer that
+only exists while the pointer rests on the heading is a poor place for a
+definition — it is invisible to a keyboard, absent from a screenshot, and
+cannot be read while looking at the row it explains. The legend is visible,
+reachable by keyboard, and sits directly above the matrix.
 
-**Trigger to re-open.** A SwiftUI release in which `.help` works on a `Text`.
+**Alternative considered.** Drawing a tooltip in SwiftUI with `onHover` and an
+overlay. Rejected: it reimplements the delay, the placement and the dismissal
+of a system affordance, and it would have been the third mechanism tried for
+something that does not need to be a tooltip.
+
+**Trigger to re-open.** A SwiftUI release in which `.help` works on a `Text`,
+which would make a tooltip a reasonable *addition* to the legend.
+
+**Revisions.** 2026-09-16, same day: first replaced `.help` with an AppKit
+`toolTip` overlay in `App/Components/Tooltip.swift`, which did not work either.
+Withdrawn in favour of the legend.
 
 ---
 

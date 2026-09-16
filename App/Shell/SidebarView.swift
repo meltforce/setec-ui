@@ -30,7 +30,6 @@ struct SidebarView: View {
                         label: filter.title,
                         count: store.count(for: filter)
                     )
-                    .tooltip(filter.explanation)
                 }
             } header: {
                 Text("Smart filters").sectionHeaderStyle()

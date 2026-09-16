@@ -66,25 +66,18 @@ struct DetailActionBar: View {
                 store.sheet = .newVersion(secret.name)
             }
             .buttonStyle(.glass)
-            .controlSize(.small)
             .accessibilityIdentifier("detail.newVersion")
 
-            Menu {
-                Button("Copy name") {
-                    SecretPasteboard.copyPlain(secret.name)
-                }
-                Divider()
-                Button("Delete secret …", role: .destructive) {
-                    store.sheet = .deleteSecret(secret.name)
-                }
-            } label: {
-                Image(systemName: "ellipsis")
-            }
-            .menuStyle(.button)
-            .buttonStyle(.glass)
-            .controlSize(.small)
-            .menuIndicator(.hidden)
-            .fixedSize()
+            IconMenuButton(
+                systemImage: "ellipsis",
+                items: [
+                    .init(title: "Copy name") { SecretPasteboard.copyPlain(secret.name) },
+                    .separator("delete"),
+                    .init(title: "Delete secret …", isDestructive: true) {
+                        store.sheet = .deleteSecret(secret.name)
+                    },
+                ]
+            )
             .accessibilityIdentifier("detail.more")
         }
     }

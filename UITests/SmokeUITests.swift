@@ -96,8 +96,32 @@ final class SmokeUITests: XCTestCase {
         XCTAssertTrue(panel.waitForExistence(timeout: 5))
         XCTAssertFalse(app.buttons["value.copy"].exists, "hidden until the pointer is on the panel")
         panel.hover()
-        XCTAssertTrue(app.buttons["value.copy"].waitForExistence(timeout: 3))
+        let copy = app.buttons["value.copy"]
+        XCTAssertTrue(copy.waitForExistence(timeout: 3))
         XCTAssertFalse(app.buttons["detail.copy"].exists, "the action bar no longer carries it")
+
+        // Size and placement, which a screenshot cannot be made to show from
+        // here: a synthesized pointer does not reach SwiftUI's `onHover`.
+        XCTAssertGreaterThanOrEqual(copy.frame.height, 20, "not a miniature control")
+        let panelCentre = panel.frame.midY
+        XCTAssertEqual(copy.frame.midY, panelCentre, accuracy: 3, "centred against the value")
+    }
+
+    /// The overflow button is a real `Button` with an `NSMenu`, because
+    /// SwiftUI's `Menu` drops its background when given the round shape.
+    @MainActor
+    func testTheOverflowButtonOpensItsMenu() {
+        let app = launch()
+        let list = app.descendants(matching: .any).matching(identifier: "secrets.list").firstMatch
+        XCTAssertTrue(list.waitForExistence(timeout: 15))
+        list.cells.firstMatch.click()
+        let more = app.buttons["detail.more"]
+        XCTAssertTrue(more.waitForExistence(timeout: 5))
+        XCTAssertEqual(more.frame.width, more.frame.height, accuracy: 2, "round, so square in its frame")
+        more.click()
+        XCTAssertTrue(app.menuItems["Copy name"].waitForExistence(timeout: 3))
+        XCTAssertTrue(app.menuItems["Delete secret …"].exists)
+        app.typeKey(.escape, modifierFlags: [])
     }
 
     @MainActor

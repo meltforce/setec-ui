@@ -37,7 +37,7 @@ struct ValueSection: View {
     }
 
     private var panel: some View {
-        HStack {
+        HStack(alignment: .center, spacing: 12) {
             Group {
                 if let revealed {
                     Text(verbatim: revealed.value)
@@ -59,11 +59,11 @@ struct ValueSection: View {
             // On the value itself, not on the panel around it: an identifier
             // on the container would replace the copy button's own.
             .accessibilityIdentifier("value.panel")
+            copyButton
         }
         .padding(.horizontal, 16)
         .padding(.vertical, 14)
         .panelSurface()
-        .overlay(alignment: .topTrailing) { copyButton }
         .onHover { hovering = $0 }
     }
 
@@ -71,14 +71,18 @@ struct ValueSection: View {
     /// button appears on rollover, and SwiftUI takes a fully transparent view
     /// out of the accessibility tree — so `make click` and the UI tests hover
     /// the panel first, the same way a person does.
+    ///
+    /// It is a member of the panel's `HStack` rather than an overlay on it:
+    /// that centres it against the value however many lines the value wraps
+    /// to, and it reserves its width at all times, so revealing it on hover
+    /// moves nothing.
     private var copyButton: some View {
         Button(store.copyConfirmed ? "Copied ✓" : "Copy") {
             Task { await store.copyActiveValue() }
         }
         .buttonStyle(.glass)
-        .controlSize(.small)
         .disabled(store.isFetchingValue)
-        .padding(8)
+        .fixedSize()
         .opacity(hovering || store.copyConfirmed ? 1 : 0)
         .animation(.easeOut(duration: 0.12), value: hovering)
         .animation(.easeOut(duration: 0.12), value: store.copyConfirmed)

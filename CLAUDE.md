@@ -284,6 +284,21 @@ writing a view, `mac-app-verify` before claiming a task done.
   them. Identifiers go on leaves. The rule is in
   `mac-ui-patterns/references/type-ahead.md`; it is repeated here because it
   costs a build cycle to rediscover.
+- **Nothing in this app uses a tooltip, because none works here.** `.help` on
+  a plain `Text` shows none, with or without a `contentShape`, and an `NSView`
+  overlay carrying a `toolTip` shows none either (measured 2026-09-16 on macOS
+  27.0; no tooltip window in `CGWindowListCopyWindowInfo` after a three-second
+  hover). An explanation goes inline — the access matrix's legend is the
+  worked example.
+- **`.buttonBorderShape(.circle)` needs a label with an explicit square
+  frame.** With a label of the glyph's own width the shape falls back to a
+  capsule, and with `.circle` set it draws no background at all. SwiftUI's
+  `Menu` will not take the round shape under any combination: an icon-only
+  menu button is a `Button` with an `NSMenu` — `App/Components/IconMenuButton.swift`.
+- **A synthesized `CGEvent` mouse move does not reach SwiftUI's `.onHover`.**
+  Rollover behaviour cannot be shown with `screencapture` from here; assert it
+  in a UI test, where `XCUIElement.hover()` works, and assert the geometry
+  (`frame.midY`, `frame.height`) rather than trying to photograph it.
 - **A `confirmationDialog` is an `_NSAlertPanel`, which the agent cannot
   drive.** Its buttons report `missing value` for their name, `osascript` does
   not reach them and a synthesized Return does not either. A destructive

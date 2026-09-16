@@ -27,25 +27,25 @@ enum SecretCapability: String, CaseIterable, Identifiable, Sendable {
         }
     }
 
-    /// What the action permits, from `design/api.md`. Shown as the header's
-    /// tooltip, because an abbreviated column heading explains nothing.
+    /// What the action permits, from `design/api.md`. Shown in the matrix's
+    /// legend, because an abbreviated column heading explains nothing.
     var explanation: String {
         switch self {
         case .info:
-            "info — read a secret's metadata: which versions exist and which one is active, but not its value."
+            "Read a secret's metadata: which versions exist and which one is active, but not its value."
         case .get:
-            "get — fetch the value of a secret. It does not imply info, and info does not imply it."
+            "Fetch the value of a secret. It does not imply info, and info does not imply it."
         case .put:
-            "put — append a new version. The server assigns the number."
+            "Append a new version. The server assigns the number."
         case .createVersion:
             """
-            create-version — append a version under a caller-chosen number, failing if that number was \
-            ever used. No rule in this tailnet grants it, and this app never calls it.
+            Append a version under a caller-chosen number, failing if that number was ever used. \
+            No rule in this tailnet grants it, and this app never calls it.
             """
         case .activate:
-            "activate — make one of the existing versions the active one. This is the rollback."
+            "Make one of the existing versions the active one. This is the rollback."
         case .delete:
-            "delete — remove a single version, or every version of a secret."
+            "Remove a single version, or every version of a secret."
         }
     }
 }
