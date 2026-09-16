@@ -1,9 +1,7 @@
 import Foundation
 
 /// The actions setec subjects to access control (`design/api.md`
-/// § *Permissions*), in the column order the matrix uses. `list` is a seventh
-/// action the tailnet policy also grants; it is not a column because it is not
-/// an operation on a single secret.
+/// § *Permissions*), in the column order the matrix uses.
 enum SecretCapability: String, CaseIterable, Identifiable, Sendable {
     case info
     case get
@@ -16,15 +14,38 @@ enum SecretCapability: String, CaseIterable, Identifiable, Sendable {
         rawValue
     }
 
-    /// The abbreviated column heading: info, get, put, c-ver, activ, del.
+    /// The column heading. `create-version` is abbreviated because the column
+    /// is 74 points wide; `explanation` is what the header's tooltip says.
     var columnTitle: String {
         switch self {
         case .info: "info"
         case .get: "get"
         case .put: "put"
-        case .createVersion: "c-ver"
-        case .activate: "activ"
-        case .delete: "del"
+        case .createVersion: "create"
+        case .activate: "activate"
+        case .delete: "delete"
+        }
+    }
+
+    /// What the action permits, from `design/api.md`. Shown as the header's
+    /// tooltip, because an abbreviated column heading explains nothing.
+    var explanation: String {
+        switch self {
+        case .info:
+            "info — read a secret's metadata: which versions exist and which one is active, but not its value."
+        case .get:
+            "get — fetch the value of a secret. It does not imply info, and info does not imply it."
+        case .put:
+            "put — append a new version. The server assigns the number."
+        case .createVersion:
+            """
+            create-version — append a version under a caller-chosen number, failing if that number was \
+            ever used. No rule in this tailnet grants it, and this app never calls it.
+            """
+        case .activate:
+            "activate — make one of the existing versions the active one. This is the rollback."
+        case .delete:
+            "delete — remove a single version, or every version of a secret."
         }
     }
 }
@@ -51,10 +72,28 @@ struct SecretPattern: Hashable, Sendable {
 
 /// One `tailscale.com/cap/secrets` entry: which principals may perform which
 /// actions on which name patterns.
+///
+/// `otherActions` holds every action string the policy grants that is not one
+/// of the six columns — `list` is the one this tailnet uses. They are kept
+/// rather than dropped, because a matrix that silently omits a granted action
+/// states something false about the grant.
 struct GrantRule: Hashable, Sendable {
     var principals: [String]
     var capabilities: Set<SecretCapability>
+    var otherActions: Set<String>
     var patterns: [SecretPattern]
+
+    init(
+        principals: [String],
+        capabilities: Set<SecretCapability>,
+        otherActions: Set<String> = [],
+        patterns: [SecretPattern]
+    ) {
+        self.principals = principals
+        self.capabilities = capabilities
+        self.otherActions = otherActions
+        self.patterns = patterns
+    }
 }
 
 /// What the matrix shows the user has to look at: the scope of the question.
@@ -84,6 +123,7 @@ struct PrincipalAccess: Identifiable, Hashable, Sendable {
     /// "4 members", "tag", "you" — what the principal is, not what it may do.
     var note: String
     var capabilities: Set<SecretCapability>
+    var otherActions: Set<String>
     var isSelf: Bool
 
     var id: String {

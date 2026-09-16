@@ -37,9 +37,22 @@ struct SidebarView: View {
         }
         .listStyle(.sidebar)
         .accessibilityIdentifier("sidebar.list")
+        .safeAreaInset(edge: .top, spacing: 0) {
+            ColumnHeader(background: .clear) {
+                Text(verbatim: countLabel)
+                    .font(Typeface.ui(12.5, .semibold))
+                    .foregroundStyle(Palette.textControl)
+                    .accessibilityIdentifier("sidebar.count")
+                Spacer(minLength: 0)
+            }
+        }
         .safeAreaInset(edge: .bottom, spacing: 0) {
             SidebarFooter()
         }
+    }
+
+    private var countLabel: String {
+        store.secrets.count == 1 ? "1 secret" : "\(store.secrets.count) secrets"
     }
 
     private var scopeBinding: Binding<Scope?> {
@@ -105,13 +118,11 @@ struct SidebarFooter: View {
 
     var body: some View {
         HStack {
-            Text(verbatim: "\(store.secrets.count) secrets")
-                .accessibilityIdentifier("sidebar.count")
-            Spacer()
             TimelineView(.periodic(from: .now, by: 5)) { context in
                 Text(verbatim: syncLabel(now: context.date))
                     .accessibilityIdentifier("sidebar.synced")
             }
+            Spacer()
         }
         .font(Typeface.badge)
         .foregroundStyle(Palette.textQuaternary)

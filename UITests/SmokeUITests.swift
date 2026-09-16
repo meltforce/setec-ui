@@ -25,7 +25,7 @@ final class SmokeUITests: XCTestCase {
             || app.otherElements["sidebar.list"].exists)
         XCTAssertTrue(app.buttons["toolbar.refresh"].exists)
         XCTAssertTrue(app.buttons["toolbar.newSecret"].exists)
-        XCTAssertTrue(app.staticTexts["toolbar.identity"].exists)
+        XCTAssertTrue(app.searchFields.firstMatch.exists, "search is in the toolbar, not the sidebar")
     }
 
     @MainActor

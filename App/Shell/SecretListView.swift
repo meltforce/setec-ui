@@ -29,7 +29,7 @@ struct SecretListView: View {
     }
 
     private var header: some View {
-        HStack(spacing: 8) {
+        ColumnHeader {
             Text(verbatim: store.listTitle)
                 .font(Typeface.ui(12.5, .semibold))
                 .foregroundStyle(Palette.textControl)
@@ -51,10 +51,6 @@ struct SecretListView: View {
             .fixedSize()
             .accessibilityIdentifier("secrets.sort")
         }
-        .padding(.horizontal, 14)
-        .frame(height: 38)
-        .background(Palette.listSurface)
-        .hairline(.bottom, color: Palette.rule)
     }
 
     private var sortBinding: Binding<SecretSort> {

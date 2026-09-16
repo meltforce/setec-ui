@@ -40,11 +40,25 @@ final class TailnetPolicyTests: XCTestCase {
         XCTAssertEqual(policy.groups["group:ops"]?.count, 2)
     }
 
-    func testAnUnknownActionIsDroppedRatherThanInvented() throws {
+    func testNoRuleGrantsCreateVersion() throws {
         let policy = try policy()
         let admin = try XCTUnwrap(policy.rules.first { $0.principals == ["autogroup:admin"] })
-        XCTAssertFalse(admin.capabilities.contains(.createVersion), "no rule grants create-version")
-        XCTAssertEqual(admin.capabilities.count, 5, "list is not one of the six columns")
+        XCTAssertFalse(admin.capabilities.contains(.createVersion))
+        XCTAssertEqual(admin.capabilities.count, 5)
+    }
+
+    /// `list` is granted by the policy and is not one of the six columns. It
+    /// is kept, because a matrix that omits a granted action states something
+    /// false about the grant.
+    func testAnActionWithoutAColumnIsKeptRatherThanDropped() throws {
+        let policy = try policy()
+        let admin = try XCTUnwrap(policy.rules.first { $0.principals == ["autogroup:admin"] })
+        XCTAssertEqual(admin.otherActions, ["list"])
+        let rows = try policy.access(in: .group("docker"), identity: nil)
+        let adminRow = try XCTUnwrap(rows.first { $0.principal == "autogroup:admin" })
+        XCTAssertEqual(adminRow.otherActions, ["list"])
+        let ops = try XCTUnwrap(rows.first { $0.principal == "group:ops" })
+        XCTAssertTrue(ops.otherActions.isEmpty)
     }
 
     func testPatternMatching() {

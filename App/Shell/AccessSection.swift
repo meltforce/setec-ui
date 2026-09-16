@@ -59,9 +59,30 @@ struct AccessSection: View {
                         .foregroundStyle(Palette.textQuaternary)
                 }
             } else {
-                matrix(rows)
+                VStack(alignment: .leading, spacing: 6) {
+                    matrix(rows)
+                    if let note = otherActionsNote(rows) {
+                        Text(verbatim: note)
+                            .font(Typeface.meta)
+                            .foregroundStyle(Palette.textQuaternary)
+                            .accessibilityIdentifier("access.otherActions")
+                    }
+                }
             }
         }
+    }
+
+    /// The policy grants actions that have no column — `list` is the one this
+    /// tailnet uses. They are named below the matrix rather than dropped,
+    /// because a matrix that omits a granted action states something false.
+    private func otherActionsNote(_ rows: [PrincipalAccess]) -> String? {
+        let extras = rows.reduce(into: Set<String>()) { $0.formUnion($1.otherActions) }
+        guard !extras.isEmpty else { return nil }
+        let names = extras.sorted().joined(separator: ", ")
+        return """
+        These rules also grant \(names), which setec's API reference does not list as \
+        a per-secret action and which has no column here.
+        """
     }
 
     private func placeholder(@ViewBuilder _ content: () -> some View) -> some View {
@@ -96,6 +117,7 @@ struct AccessSection: View {
                     .font(Typeface.mono(10.5))
                     .foregroundStyle(Palette.textQuaternary)
                     .frame(width: 74)
+                    .help(capability.explanation)
             }
         }
         .padding(.horizontal, 14)

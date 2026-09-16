@@ -8,7 +8,7 @@ struct SettingsView: View {
             ServerSettings()
                 .tabItem { Label("Server", systemImage: "server.rack") }
         }
-        .frame(width: 520, height: 260)
+        .frame(width: 520, height: 340)
     }
 }
 
@@ -43,6 +43,27 @@ struct ServerSettings: View {
             } footer: {
                 Text(verbatim: footer)
             }
+            Section {
+                LabeledContent("Signed in as") {
+                    Text(verbatim: store.identity?.loginName ?? "Identity unknown")
+                        .accessibilityIdentifier("settings.identity")
+                }
+                LabeledContent("This machine") {
+                    Text(verbatim: store.identity?.nodeName ?? "—")
+                        .accessibilityIdentifier("settings.node")
+                }
+                LabeledContent("Reachable") {
+                    Text(verbatim: reachability)
+                        .accessibilityIdentifier("settings.reachable")
+                }
+            } header: {
+                Text("Identity")
+            } footer: {
+                Text("""
+                setec authorizes the caller by its tailnet identity, so there is nothing to sign in \
+                with here. The identity comes from the local tailscaled.
+                """)
+            }
         }
         .formStyle(.grouped)
         .onAppear { draft = stored.isEmpty ? store.server.absoluteString : stored }
@@ -50,6 +71,15 @@ struct ServerSettings: View {
 
     private var parsed: URL? {
         ServerSetting.parse(draft)
+    }
+
+    private var reachability: String {
+        switch store.loading {
+        case .loaded: "Yes — \(store.secrets.count) secrets visible"
+        case .loading: "Checking…"
+        case .idle: "Not contacted yet"
+        case .failed: "No"
+        }
     }
 
     private var footer: String {

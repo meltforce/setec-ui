@@ -23,9 +23,12 @@ struct RootView: View {
         .toolbar { WindowToolbar() }
         .navigationTitle(store.selected?.name ?? "Setec UI")
         .navigationSubtitle(subtitle)
+        // In the toolbar rather than in the sidebar: it searches every secret
+        // regardless of the selected group, so it belongs to the window and
+        // not to the column that chooses a group.
         .searchable(
             text: $store.query,
-            placement: .sidebar,
+            placement: .toolbar,
             prompt: Text("Search secrets")
         )
         .safeAreaInset(edge: .top, spacing: 0) {

@@ -116,9 +116,12 @@ struct TailnetPolicy: Sendable, Equatable {
             for entry in entries {
                 let actions = (entry["action"] as? [String]) ?? []
                 let patterns = (entry["secret"] as? [String]) ?? []
+                let known = Set(actions.compactMap(SecretCapability.init(rawValue:)))
+                let others = Set(actions).subtracting(known.map(\.rawValue))
                 parsed.append(GrantRule(
                     principals: sources,
-                    capabilities: Set(actions.compactMap(SecretCapability.init(rawValue:))),
+                    capabilities: known,
+                    otherActions: others,
                     patterns: patterns.map { SecretPattern(text: $0) }
                 ))
             }
@@ -130,9 +133,11 @@ struct TailnetPolicy: Sendable, Equatable {
     /// by two rules holds the union of what both grant.
     func access(in scope: AccessScope, identity: TailnetIdentity?) -> [PrincipalAccess] {
         var merged: [String: Set<SecretCapability>] = [:]
+        var others: [String: Set<String>] = [:]
         for rule in rules where rule.patterns.contains(where: { scope.isCovered(by: $0) }) {
             for principal in rule.principals {
                 merged[principal, default: []].formUnion(rule.capabilities)
+                others[principal, default: []].formUnion(rule.otherActions)
             }
         }
         return merged
@@ -141,6 +146,7 @@ struct TailnetPolicy: Sendable, Equatable {
                     principal: principal,
                     note: note(for: principal),
                     capabilities: capabilities,
+                    otherActions: others[principal] ?? [],
                     isSelf: isSelf(principal, identity: identity)
                 )
             }

@@ -14,6 +14,71 @@ place with the old form recorded under revisions — the entry is not duplicated
 
 ---
 
+## 2026-09-16 — the toolbar carries the search field and two buttons, and nothing else
+
+**Decided:** 2026-09-16
+
+**Decision.** The window toolbar holds Refresh, New Secret and the search
+field. The server pill and the tailnet identity are gone from it; both are read
+in Settings › Server, alongside the node name and whether the server answered.
+Refresh and New Secret are plain `Button`s in the system's styles —
+`.borderedProminent` for New Secret — not the app's own `ButtonStyle`s.
+
+Each of the three columns opens with a 38-point `ColumnHeader`, so their
+contents begin on one line: the secret count in the sidebar, the scope and the
+sort control in the list, the group and the actions on the selected secret in
+the detail column. The secret's name moved out of that bar into the top of the
+scrollable body, where it is the heading of what is shown beneath it.
+
+**Reasoning.** macOS draws a toolbar item's own background, and a custom
+`ButtonStyle` paints a second one inside it: the operator reported the two
+buttons as "a bit like liquid glass, but not properly, with a white frame
+behind them that does not fit", which is exactly that double background. The
+server and the identity are one value each and neither changes while the window
+is open, so a permanent strip for them spends toolbar width on a fact that is
+read once — the width goes to the search field, which is used repeatedly and
+searches every secret regardless of the selected group, so it belongs to the
+window rather than to the column that chooses a group.
+
+**Alternative considered.** Keeping the design's hand-drawn toolbar by
+suppressing the system's item background. Rejected: `design/handoff.md` already
+names the window chrome as the one thing that comes from the real window and is
+not to be rebuilt, and the toolbar is part of it.
+
+**Trigger to re-open.** A second setec server, which turns the server from a
+displayed fact into a choice that belongs in the window.
+
+---
+
+## 2026-09-16 — the access matrix keeps `create-version` and names the actions it has no column for
+
+**Decided:** 2026-09-16
+
+**Decision.** The six columns stay as `design/handoff.md` specifies them, with
+`c-ver` written out as `create` and every header carrying a tooltip with the
+action's full name and what it permits. An action a rule grants that has no
+column — `list`, in this tailnet — is named in a line below the matrix instead
+of being discarded during parsing.
+
+**Reasoning.** `create-version` is empty in every row because no rule in
+`infrastructure/tailnet-policy/policy.hujson` grants it and this app never
+calls it, which the operator read as a column without a purpose. Dropping it
+would make the matrix silent about the grant the moment someone adds one, and a
+matrix that cannot show a grant is worse than one with an empty column. The
+same argument runs the other way for `list`: it *is* granted, `design/api.md`
+does not list it among the per-secret actions, and until now the parser dropped
+it — so the matrix was already silent about a real grant.
+
+**Alternative considered.** A seventh column for `list`. Rejected because it is
+not a per-secret action: it authorizes `/api/list`, which returns everything
+the caller may see, so a per-group column for it would imply a scoping it does
+not have.
+
+**Trigger to re-open.** setec documenting `list` as a per-secret action, or a
+rule in this tailnet granting `create-version`.
+
+---
+
 ## 2026-09-16 — the app icon is a brass key on a labelled tag
 
 **Decided:** 2026-09-16

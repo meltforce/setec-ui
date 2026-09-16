@@ -17,7 +17,7 @@ the local `tailscaled`, so there is no login screen and no token to enter.
 | `design/` | The design handoff this app is built from: `handoff.md` is the specification, `api.md` the upstream API reference, `Setec Mac App.dc.html` plus `support.js` the interactive HTML prototype. A reference for look and behaviour, not code to port. |
 | `App/Design/` | The handoff's token list as Swift: palette (light and dark), type scale, button styles, section header, API preview panel. |
 | `App/Features/` | `SecretStore` with the list, the selection and everything derived from them; the name rules and the value generator; the access models. |
-| `App/Shell/` | The window: toolbar, sidebar, list, detail with its three sections, status bar. |
+| `App/Shell/` | The window: toolbar, sidebar, list, detail with its three sections, status bar. Each column opens with a shared 38-point header, so the three start on one line. |
 | `App/Sheets/` | New secret, New version, Delete secret, Delete version — all four in the same chrome. |
 | `Services/` | The setec client, the tailnet policy client, the tailnet identity, the pasteboard, the logger, `DebugServer` (DEBUG builds only). |
 | `Resources/` | `Info.plist` and `App.entitlements` are generated from `project.yml` by `make project` and are gitignored. |

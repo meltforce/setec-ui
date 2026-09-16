@@ -26,15 +26,16 @@ struct DetailView: View {
 
     private func content(for secret: Secret) -> some View {
         VStack(spacing: 0) {
-            DetailHeader(secret: secret)
+            DetailActionBar(secret: secret)
             ScrollView {
                 VStack(alignment: .leading, spacing: 22) {
+                    DetailTitle(secret: secret)
                     ValueSection(secret: secret)
                     VersionsSection(secret: secret)
                     AccessSection(secret: secret)
                 }
                 .padding(.horizontal, 26)
-                .padding(.top, 20)
+                .padding(.top, 18)
                 .padding(.bottom, 28)
                 .frame(maxWidth: .infinity, alignment: .leading)
             }
@@ -42,35 +43,72 @@ struct DetailView: View {
     }
 }
 
-struct DetailHeader: View {
+/// The detail column's header bar, on the same line as the other two columns':
+/// the group the secret sits in on the left, what can be done to it on the
+/// right. The name itself is in the body, where it is the heading of what is
+/// shown beneath it.
+struct DetailActionBar: View {
     @Environment(SecretStore.self) private var store
     let secret: Secret
 
     var body: some View {
-        HStack(alignment: .top, spacing: 16) {
-            VStack(alignment: .leading, spacing: 0) {
-                if !secret.prefix.isEmpty {
-                    Text(verbatim: secret.prefix)
-                        .font(Typeface.monoPrefix)
-                        .foregroundStyle(Palette.textQuaternary)
-                }
-                Text(verbatim: secret.leaf)
-                    .font(Typeface.detailTitle)
-                    .tracking(Typeface.detailTitleTracking)
-                    .foregroundStyle(Palette.textPrimary)
-                    .textSelection(.enabled)
-                    .accessibilityIdentifier("detail.title")
-                metaRow
-                    .padding(.top, 8)
-            }
+        ColumnHeader(background: Palette.panel) {
+            Text(verbatim: secret.prefix.isEmpty ? "Ungrouped" : secret.prefix)
+                .font(Typeface.mono(12.5))
+                .foregroundStyle(Palette.textQuaternary)
+                .lineLimit(1)
             Spacer(minLength: 0)
-            actions
+            Button(store.copyConfirmed ? "Copied ✓" : "Copy value") {
+                Task { await store.copyActiveValue() }
+            }
+            .buttonStyle(SecondaryButtonStyle(height: 24))
+            .disabled(store.isFetchingValue)
+            .accessibilityIdentifier("detail.copy")
+
+            Button("New version …") {
+                store.sheet = .newVersion(secret.name)
+            }
+            .buttonStyle(SecondaryButtonStyle(height: 24))
+            .accessibilityIdentifier("detail.newVersion")
+
+            Menu {
+                Button("Copy name") {
+                    SecretPasteboard.copyPlain(secret.name)
+                }
+                Divider()
+                Button("Delete secret …", role: .destructive) {
+                    store.sheet = .deleteSecret(secret.name)
+                }
+            } label: {
+                Image(systemName: "ellipsis")
+                    .font(.system(size: 12, weight: .semibold))
+                    .foregroundStyle(Palette.textControl)
+                    .frame(width: 24, height: 24)
+            }
+            .menuStyle(.borderlessButton)
+            .menuIndicator(.hidden)
+            .fixedSize()
+            .accessibilityIdentifier("detail.more")
         }
-        .padding(.leading, 26)
-        .padding(.trailing, 26)
-        .padding(.top, 20)
-        .padding(.bottom, 16)
-        .hairline(.bottom)
+    }
+}
+
+/// The secret's name and what the metadata says about it, at the top of the
+/// scrollable body.
+struct DetailTitle: View {
+    let secret: Secret
+
+    var body: some View {
+        VStack(alignment: .leading, spacing: 0) {
+            Text(verbatim: secret.leaf)
+                .font(Typeface.detailTitle)
+                .tracking(Typeface.detailTitleTracking)
+                .foregroundStyle(Palette.textPrimary)
+                .textSelection(.enabled)
+                .accessibilityIdentifier("detail.title")
+            metaRow
+                .padding(.top, 8)
+        }
     }
 
     private var metaRow: some View {
@@ -92,52 +130,8 @@ struct DetailHeader: View {
         .foregroundStyle(Palette.textTertiary)
         .accessibilityIdentifier("detail.meta")
     }
-
-    private var actions: some View {
-        HStack(spacing: 8) {
-            Button(store.copyConfirmed ? "Copied ✓" : "Copy value") {
-                Task { await store.copyActiveValue() }
-            }
-            .buttonStyle(PrimaryButtonStyle(height: 30))
-            .disabled(store.isFetchingValue)
-            .accessibilityIdentifier("detail.copy")
-
-            Button("New version …") {
-                store.sheet = .newVersion(secret.name)
-            }
-            .buttonStyle(SecondaryButtonStyle(height: 30))
-            .accessibilityIdentifier("detail.newVersion")
-
-            Menu {
-                Button("Copy name") {
-                    SecretPasteboard.copyPlain(secret.name)
-                }
-                Divider()
-                Button("Delete secret …", role: .destructive) {
-                    store.sheet = .deleteSecret(secret.name)
-                }
-            } label: {
-                Image(systemName: "ellipsis")
-                    .font(.system(size: 12, weight: .semibold))
-                    .foregroundStyle(Palette.textControl)
-                    .frame(width: 30, height: 30)
-            }
-            .menuStyle(.borderlessButton)
-            .menuIndicator(.hidden)
-            .fixedSize()
-            .background(Palette.panel)
-            .clipShape(RoundedRectangle(cornerRadius: 7, style: .continuous))
-            .overlay(
-                RoundedRectangle(cornerRadius: 7, style: .continuous)
-                    .strokeBorder(Palette.inputRing, lineWidth: 0.5)
-            )
-            .accessibilityIdentifier("detail.more")
-        }
-    }
 }
 
-/// The last call this window made on the left, the app's standing promise on
-/// the right.
 struct DetailStatusBar: View {
     @Environment(SecretStore.self) private var store
 
