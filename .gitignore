@@ -22,3 +22,6 @@ DerivedData/
 # macOS
 .DS_Store
 ._*
+
+# icongen's variant scratch directory; only the applied appiconset is committed
+icongen-out/

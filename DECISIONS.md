@@ -14,6 +14,33 @@ place with the old form recorded under revisions — the entry is not duplicated
 
 ---
 
+## 2026-09-16 — the app icon is a brass key on a labelled tag
+
+**Decided:** 2026-09-16
+
+**Decision.** `Resources/Assets.xcassets/AppIcon.appiconset` holds the first of
+three `icongen` variants: a brass key lying on a dark labelled tag, on a deep
+navy ground. The subject paragraph handed to the generator described setec in
+everyday terms — a private company vault holding passwords and server keys,
+with a history of older copies per key — and proposed a key on a paper tag, a
+rack of numbered key tags, or a strongbox with a key on it.
+
+**Reasoning.** The three variants were a key on a tag, a combination safe and a
+vault door. The key on the tag has the strongest silhouette and the only
+saturated colour, so it stays legible at 32 and 16 points; the safe loses its
+dial markings at that size and the vault door is a grey disc that names no part
+of what the app does. The tag also carries the app's actual subject — a key
+that has a *name* — which neither of the others does.
+
+**Alternative considered.** Drawing something from the window itself, such as
+the version list or the grant matrix. Rejected: an icon of a table is an icon
+of a spreadsheet.
+
+**Trigger to re-open.** A request for a different subject, or a macOS release
+that changes the icon shape the generator masks for.
+
+---
+
 ## 2026-09-16 — a delete-version confirmation is a sheet, not a system alert
 
 **Decided:** 2026-09-16
