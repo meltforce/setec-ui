@@ -49,6 +49,10 @@ targets:
         CFBundleDisplayName: "Setec UI"
         CFBundleName: "Setec UI"
         CFBundleDevelopmentRegion: en
+        # Without these two the generated plist keeps xcodegen's default 1.0,
+        # so the installed app reports a version the repository never set.
+        CFBundleShortVersionString: "$(MARKETING_VERSION)"
+        CFBundleVersion: "$(CURRENT_PROJECT_VERSION)"
         LSApplicationCategoryType: public.app-category.productivity
         LSMinimumSystemVersion: "$(MACOSX_DEPLOYMENT_TARGET)"
         NSHumanReadableCopyright: ""
