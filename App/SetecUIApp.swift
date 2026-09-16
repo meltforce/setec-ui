@@ -3,22 +3,32 @@ import SwiftUI
 @main
 struct AppMain: App {
     @NSApplicationDelegateAdaptor(AppDelegate.self) private var appDelegate
-    @State private var store = ItemStore.sample()
+    @State private var store: SecretStore
+    @State private var access: AccessStore
+
+    init() {
+        let store = SecretStore()
+        let client = TailnetPolicyClient(setec: SetecClient(server: store.server))
+        _store = State(initialValue: store)
+        _access = State(initialValue: AccessStore(client: client) { [weak store] in store?.identity })
+    }
 
     var body: some Scene {
         WindowGroup {
             RootView()
                 .environment(store)
-                .frame(minWidth: 900, minHeight: 560)
-                .onAppear { appDelegate.attach(store: store) }
+                .environment(access)
+                .frame(minWidth: 1000, minHeight: 700)
+                .onAppear { appDelegate.attach(store: store, access: access) }
         }
-        .defaultSize(width: 1100, height: 720)
+        .defaultSize(width: 1280, height: 800)
         .commands {
             AppCommands()
         }
 
         Settings {
             SettingsView()
+                .environment(store)
         }
     }
 }

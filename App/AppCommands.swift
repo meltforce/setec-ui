@@ -4,37 +4,47 @@ import SwiftUI
 /// command is enabled exactly when a scene that provides the value is focused.
 /// A shortcut that "does nothing" is a missing focused value, not a wrong key.
 struct AppCommands: Commands {
-    @FocusedValue(\.itemActions) private var itemActions
+    @FocusedValue(\.secretActions) private var actions
 
     var body: some Commands {
         CommandGroup(replacing: .newItem) {
-            Button("New Item") { itemActions?.newItem() }
+            Button("New Secret…") { actions?.newSecret() }
                 .keyboardShortcut("n", modifiers: .command)
-                .disabled(itemActions == nil)
+                .disabled(actions == nil)
         }
-        CommandMenu("Item") {
-            Button("Next") { itemActions?.next() }
-                .keyboardShortcut("j", modifiers: .command)
-                .disabled(itemActions == nil)
-            Button("Previous") { itemActions?.previous() }
-                .keyboardShortcut("k", modifiers: .command)
-                .disabled(itemActions == nil)
+        CommandMenu("Secret") {
+            Button("New Version…") { actions?.newVersion() }
+                .keyboardShortcut("n", modifiers: [.command, .shift])
+                .disabled(actions?.canActOnSecret != true)
+            Button("Copy Value") { actions?.copyValue() }
+                .keyboardShortcut("c", modifiers: [.command, .shift])
+                .disabled(actions?.canActOnSecret != true)
+            Button("Reveal or Hide Value") { actions?.toggleReveal() }
+                .keyboardShortcut("r", modifiers: [.command, .shift])
+                .disabled(actions?.canActOnSecret != true)
             Divider()
-            Button("Toggle Inspector") { itemActions?.toggleInspector() }
-                .keyboardShortcut("i", modifiers: [.command, .option])
-                .disabled(itemActions == nil)
+            Button("Refresh") { actions?.refresh() }
+                .keyboardShortcut("r", modifiers: .command)
+                .disabled(actions == nil)
+            Divider()
+            Button("Delete Secret…") { actions?.deleteSecret() }
+                .keyboardShortcut(.delete, modifiers: .command)
+                .disabled(actions?.canActOnSecret != true)
         }
     }
 }
 
-/// The actions a focused scene offers to the menu bar.
-struct ItemActions {
-    var newItem: () -> Void
-    var next: () -> Void
-    var previous: () -> Void
-    var toggleInspector: () -> Void
+/// The actions the focused window offers to the menu bar.
+struct SecretActions {
+    var newSecret: () -> Void
+    var newVersion: () -> Void
+    var deleteSecret: () -> Void
+    var refresh: () -> Void
+    var toggleReveal: () -> Void
+    var copyValue: () -> Void
+    var canActOnSecret: Bool
 }
 
 extension FocusedValues {
-    @Entry var itemActions: ItemActions?
+    @Entry var secretActions: SecretActions?
 }

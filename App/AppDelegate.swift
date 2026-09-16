@@ -1,7 +1,7 @@
 import AppKit
 
-/// Owns what SwiftUI's `App` cannot: the Dock and termination policy, URL
-/// events, and the DEBUG-only `DebugServer` the agent talks to.
+/// Owns what SwiftUI's `App` cannot: the Dock and termination policy, and the
+/// DEBUG-only `DebugServer` the agent talks to.
 @MainActor
 final class AppDelegate: NSObject, NSApplicationDelegate {
     func applicationDidFinishLaunching(_ notification: Notification) {
@@ -15,21 +15,57 @@ final class AppDelegate: NSObject, NSApplicationDelegate {
         false
     }
 
-    /// Registers the app's state and actions with the debug endpoint. Called
-    /// once the root view has its store. Compiles to nothing in Release.
-    func attach(store: ItemStore) {
+    /// Registers the app's state and actions with the debug endpoint. Values
+    /// never reach it — the state is names, counts and version numbers.
+    func attach(store: SecretStore, access: AccessStore) {
         #if DEBUG
-        DebugServer.shared.register(state: "items") { store.snapshot() }
-        DebugServer.shared.register(action: "select") { params in
-            guard let id = params["id"] as? String else { throw DebugServer.Failure.badParams("id") }
-            store.select(id: id)
-            return ["selected": id]
+        DebugServer.shared.register(state: "secrets") { store.snapshot() }
+        DebugServer.shared.register(state: "access") {
+            [
+                "state": String(describing: access.state),
+                "rules": access.policy?.rules.count ?? 0,
+            ]
         }
-        DebugServer.shared.register(action: "add") { params in
-            let title = params["title"] as? String ?? "Untitled"
-            let item = store.add(title: title)
-            return ["id": item.id]
+        DebugServer.shared.register(action: "select") { params in
+            guard let name = params["name"] as? String else { throw DebugServer.Failure.badParams("name") }
+            store.selectedName = name
+            return ["selected": name]
+        }
+        DebugServer.shared.register(action: "scope") { params in
+            guard let value = params["value"] as? String else { throw DebugServer.Failure.badParams("value") }
+            store.scope = Self.scope(from: value)
+            return ["scope": store.scope.title]
+        }
+        DebugServer.shared.register(action: "search") { params in
+            store.query = params["query"] as? String ?? ""
+            return ["visible": store.visible.count]
+        }
+        DebugServer.shared.register(action: "sheet") { params in
+            let kind = params["kind"] as? String
+            store.sheet = Self.sheet(named: kind, selected: store.selectedName)
+            return ["sheet": store.sheet?.id ?? "none"]
         }
         #endif
     }
+
+    #if DEBUG
+    private static func scope(from value: String) -> Scope {
+        if value == "all" {
+            return .all
+        }
+        if let filter = SmartFilter(rawValue: value) {
+            return .filter(filter)
+        }
+        return .group(value)
+    }
+
+    private static func sheet(named kind: String?, selected: String?) -> SecretStore.Sheet? {
+        switch kind {
+        case "new": .newSecret
+        case "version": selected.map { SecretStore.Sheet.newVersion($0) }
+        case "delete": selected.map { SecretStore.Sheet.deleteSecret($0) }
+        default: nil
+        }
+    }
+    #endif
 }

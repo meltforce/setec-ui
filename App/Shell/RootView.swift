@@ -1,151 +1,104 @@
 import SwiftUI
 
-/// The three-column shell: sidebar (sections), content (items), detail, plus a
-/// trailing inspector. Replace the example feature; keep the shape.
+/// The window: a sidebar of groups and derived filters, a list of secrets, and
+/// the detail column. Column widths follow the design (232 / 316 / rest); the
+/// window chrome and the toolbar come from the real window, which is the one
+/// abstraction the handoff makes.
 struct RootView: View {
-    @Environment(ItemStore.self) private var store
-    @State private var section: ItemSection? = .inbox
-    @State private var inspectorShown = true
+    @Environment(SecretStore.self) private var store
+    @Environment(AccessStore.self) private var access
 
     var body: some View {
         @Bindable var store = store
         NavigationSplitView {
-            SectionList(selection: $section)
-                .navigationSplitViewColumnWidth(min: 180, ideal: 220, max: 300)
+            SidebarView()
+                .navigationSplitViewColumnWidth(min: 200, ideal: 232, max: 300)
         } content: {
-            ItemList(section: section ?? .inbox, selection: $store.selectedID)
-                .navigationSplitViewColumnWidth(min: 240, ideal: 300, max: 420)
+            SecretListView()
+                .navigationSplitViewColumnWidth(min: 260, ideal: 316, max: 420)
         } detail: {
-            ItemDetail(item: store.selected)
+            DetailView()
+                .frame(maxWidth: .infinity, maxHeight: .infinity)
         }
-        .inspector(isPresented: $inspectorShown) {
-            ItemInspector(item: store.selected)
-                .inspectorColumnWidth(min: 260, ideal: 300, max: 400)
-        }
-        .toolbar {
-            ToolbarItem(placement: .primaryAction) {
-                Button {
-                    inspectorShown.toggle()
-                } label: {
-                    Label("Inspector", systemImage: "sidebar.trailing")
-                }
-                .accessibilityIdentifier("toolbar.inspector")
+        .toolbar { WindowToolbar() }
+        .navigationTitle(store.selected?.name ?? "Setec UI")
+        .navigationSubtitle(subtitle)
+        .searchable(
+            text: $store.query,
+            placement: .sidebar,
+            prompt: Text("Search secrets")
+        )
+        .safeAreaInset(edge: .top, spacing: 0) {
+            if let problem = store.problem {
+                ProblemStrip(message: problem) { store.dismissProblem() }
             }
         }
-        .navigationTitle(store.selected?.title ?? "Setec UI")
-        .navigationSubtitle(subtitle)
-        .focusedSceneValue(\.itemActions, ItemActions(
-            newItem: { _ = store.add(title: "New Item") },
-            next: { store.moveSelection(by: 1) },
-            previous: { store.moveSelection(by: -1) },
-            toggleInspector: { inspectorShown.toggle() }
+        .sheet(item: $store.sheet) { sheet in
+            switch sheet {
+            case .newSecret:
+                NewSecretSheet()
+            case let .newVersion(name):
+                NewVersionSheet(name: name)
+            case let .deleteSecret(name):
+                DeleteSecretSheet(name: name)
+            }
+        }
+        .focusedSceneValue(\.secretActions, SecretActions(
+            newSecret: { store.sheet = .newSecret },
+            newVersion: {
+                if let name = store.selectedName {
+                    store.sheet = .newVersion(name)
+                }
+            },
+            deleteSecret: {
+                if let name = store.selectedName {
+                    store.sheet = .deleteSecret(name)
+                }
+            },
+            refresh: { Task { await store.refresh() } },
+            toggleReveal: { Task { store.revealed == nil ? await store.reveal() : store.hide() } },
+            copyValue: { Task { await store.copyActiveValue() } },
+            canActOnSecret: store.selectedName != nil
         ))
+        .task {
+            await store.loadIdentity()
+            await store.refresh()
+            await access.load()
+        }
     }
 
     private var subtitle: String {
-        let count = store.items(in: section ?? .inbox).count
-        return "\(count) item\(count == 1 ? "" : "s")"
+        let count = store.visible.count
+        return "\(count) secret\(count == 1 ? "" : "s") in \(store.listTitle)"
     }
 }
 
-struct SectionList: View {
-    @Binding var selection: ItemSection?
+/// The error surface the design does not carry. Loading, empty and error
+/// states are flagged for design review in `ROADMAP.md`; this is the
+/// placeholder, built in the established visual language.
+struct ProblemStrip: View {
+    let message: String
+    let dismiss: () -> Void
 
     var body: some View {
-        List(ItemSection.allCases, selection: $selection) { section in
-            Label(section.title, systemImage: section.symbol)
-                .accessibilityIdentifier("sidebar.\(section.rawValue)")
+        HStack(spacing: 10) {
+            Circle()
+                .fill(Palette.destructive)
+                .frame(width: 7, height: 7)
+            Text(message)
+                .font(Typeface.meta)
+                .foregroundStyle(Palette.textBody)
+                .lineLimit(2)
+            Spacer(minLength: 0)
+            Button("Dismiss", action: dismiss)
+                .buttonStyle(LinkButtonStyle(size: 11.5, tint: Palette.textSecondary))
+                .accessibilityIdentifier("problem.dismiss")
         }
-        .listStyle(.sidebar)
-        .accessibilityIdentifier("sidebar.list")
-    }
-}
-
-struct ItemList: View {
-    @Environment(ItemStore.self) private var store
-    let section: ItemSection
-    @Binding var selection: String?
-
-    var body: some View {
-        let items = store.items(in: section)
-        if items.isEmpty {
-            ContentUnavailableView(
-                "Nothing in \(section.title)",
-                systemImage: section.symbol,
-                description: Text("Items you add appear here.")
-            )
-        } else {
-            List(items, selection: $selection) { item in
-                VStack(alignment: .leading, spacing: 2) {
-                    Text(item.title)
-                    Text(item.created, style: .date)
-                        .font(.caption)
-                        .foregroundStyle(.secondary)
-                }
-                .accessibilityIdentifier("items.row.\(item.id)")
-            }
-            .accessibilityIdentifier("items.list")
-        }
-    }
-}
-
-struct ItemDetail: View {
-    let item: Item?
-
-    var body: some View {
-        if let item {
-            ScrollView {
-                VStack(alignment: .leading, spacing: 12) {
-                    Text(item.title).font(.title)
-                    Text(item.notes.isEmpty ? "No notes." : item.notes)
-                        .foregroundStyle(item.notes.isEmpty ? .secondary : .primary)
-                }
-                .frame(maxWidth: .infinity, alignment: .leading)
-                .padding(24)
-            }
-            .accessibilityIdentifier("detail.\(item.id)")
-        } else {
-            ContentUnavailableView(
-                "No Selection",
-                systemImage: "doc.text",
-                description: Text("Select an item.")
-            )
-        }
-    }
-}
-
-struct ItemInspector: View {
-    @Environment(ItemStore.self) private var store
-    let item: Item?
-
-    var body: some View {
-        if let item {
-            Form {
-                Section("Item") {
-                    TextField("Title", text: binding(for: item, \.title))
-                        .accessibilityIdentifier("inspector.title")
-                    Picker("Section", selection: binding(for: item, \.section)) {
-                        ForEach(ItemSection.allCases) { Text($0.title).tag($0) }
-                    }
-                    .accessibilityIdentifier("inspector.section")
-                    LabeledContent("Created") { Text(item.created, style: .date) }
-                }
-                Section("Notes") {
-                    TextEditor(text: binding(for: item, \.notes))
-                        .frame(minHeight: 120)
-                        .accessibilityIdentifier("inspector.notes")
-                }
-            }
-            .formStyle(.grouped)
-        } else {
-            ContentUnavailableView("No Item", systemImage: "info.circle")
-        }
-    }
-
-    private func binding<T>(for item: Item, _ keyPath: WritableKeyPath<Item, T>) -> Binding<T> {
-        Binding(
-            get: { store.item(id: item.id)?[keyPath: keyPath] ?? item[keyPath: keyPath] },
-            set: { newValue in store.update(id: item.id) { $0[keyPath: keyPath] = newValue } }
-        )
+        .padding(.horizontal, 16)
+        .padding(.vertical, 9)
+        .frame(maxWidth: .infinity)
+        .background(Palette.redHeaderFill)
+        .hairline(.bottom, color: Palette.redRing)
+        .accessibilityIdentifier("problem.strip")
     }
 }

@@ -1,33 +1,69 @@
 import XCTest
 
-/// The regression floor: the app launches, the shell renders, the menu
-/// command reaches its handler. Feature tests are added when a verification
-/// step in a plan names them.
+/// The regression floor: the app launches, the three columns render, the
+/// sidebar and the list answer selection, and the sheets open and close. The
+/// app talks to the real server on launch, so nothing here asserts a secret
+/// name — only the shell and the controls.
 final class SmokeUITests: XCTestCase {
     /// Without this, AppKit's window restoration for the bundle id can leave a
     /// test-launched app with no window at all (INCIDENTS.md, 2026-09-15).
     private let ignoreSavedState = ["-ApplePersistenceIgnoreState", "YES"]
 
     @MainActor
-    func testLaunchShowsTheShell() {
+    private func launch() -> XCUIApplication {
         let app = XCUIApplication()
         app.launchArguments = ignoreSavedState
         app.launch()
-        XCTAssertTrue(app.windows.firstMatch.waitForExistence(timeout: 10))
-        XCTAssertTrue(app.outlines["sidebar.list"].exists || app.tables["sidebar.list"].exists
-            || app.otherElements["sidebar.list"].exists)
-        XCTAssertTrue(app.buttons["toolbar.inspector"].exists)
+        XCTAssertTrue(app.windows.firstMatch.waitForExistence(timeout: 15))
+        return app
     }
 
     @MainActor
-    func testNewItemCommandAddsARow() {
-        let app = XCUIApplication()
-        app.launchArguments = ignoreSavedState
-        app.launch()
-        XCTAssertTrue(app.windows.firstMatch.waitForExistence(timeout: 10))
-        app.typeKey("n", modifierFlags: .command)
-        let field = app.textFields["inspector.title"]
-        XCTAssertTrue(field.waitForExistence(timeout: 5))
-        XCTAssertEqual(field.value as? String, "New Item")
+    func testLaunchShowsTheShell() {
+        let app = launch()
+        XCTAssertTrue(app.outlines["sidebar.list"].exists || app.tables["sidebar.list"].exists
+            || app.otherElements["sidebar.list"].exists)
+        XCTAssertTrue(app.buttons["toolbar.refresh"].exists)
+        XCTAssertTrue(app.buttons["toolbar.newSecret"].exists)
+        XCTAssertTrue(app.staticTexts["toolbar.identity"].exists)
+    }
+
+    @MainActor
+    func testTheDetailColumnStartsWithoutASelection() {
+        let app = launch()
+        XCTAssertTrue(app.staticTexts["No secret selected"].waitForExistence(timeout: 5))
+    }
+
+    @MainActor
+    func testNewSecretSheetOpensAndCancels() {
+        let app = launch()
+        app.buttons["toolbar.newSecret"].click()
+        let name = app.textFields["newSecret.name"]
+        XCTAssertTrue(name.waitForExistence(timeout: 5))
+        XCTAssertTrue(app.buttons["newSecret.generate"].exists)
+        XCTAssertFalse(app.buttons["newSecret.submit"].isEnabled, "an empty form cannot be submitted")
+        app.buttons["newSecret.cancel"].click()
+        XCTAssertFalse(name.waitForExistence(timeout: 2))
+    }
+
+    @MainActor
+    func testTheNameFieldReportsAnInvalidName() {
+        let app = launch()
+        app.buttons["toolbar.newSecret"].click()
+        let name = app.textFields["newSecret.name"]
+        XCTAssertTrue(name.waitForExistence(timeout: 5))
+        name.click()
+        name.typeText("Not/A/Valid")
+        XCTAssertTrue(app.staticTexts["Lowercase, digits, . _ - and / only"].waitForExistence(timeout: 3))
+        app.buttons["newSecret.cancel"].click()
+    }
+
+    @MainActor
+    func testTheSidebarSelectsAFilter() {
+        let app = launch()
+        let row = app.staticTexts["sidebar.filter.noRollback"].firstMatch
+        XCTAssertTrue(row.waitForExistence(timeout: 10))
+        row.click()
+        XCTAssertTrue(app.staticTexts["No rollback version"].firstMatch.exists)
     }
 }
