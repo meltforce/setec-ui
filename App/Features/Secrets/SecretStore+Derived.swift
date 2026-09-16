@@ -32,8 +32,15 @@ extension SecretStore {
         secrets.count { $0.group == nil }
     }
 
-    func count(for filter: SmartFilter) -> Int {
-        secrets.count { filter.matches($0) }
+    /// Nil for a filter that needs values before it can answer and has not
+    /// been given them — the sidebar shows a dash rather than a zero, because
+    /// "none" and "not looked" are different answers.
+    func count(for filter: SmartFilter) -> Int? {
+        if filter.needsValues, reuseScan == nil {
+            return nil
+        }
+        let reused = reusedNames
+        return secrets.count { filter.matches($0, reusedNames: reused) }
     }
 
     /// The list column's contents. A non-empty search overrides scope and
@@ -46,7 +53,9 @@ extension SecretStore {
         switch scope {
         case .all: return sorted(secrets)
         case let .group(group): return sorted(secrets.filter { $0.group == group })
-        case let .filter(filter): return sorted(secrets.filter { filter.matches($0) })
+        case let .filter(filter):
+            let reused = reusedNames
+            return sorted(secrets.filter { filter.matches($0, reusedNames: reused) })
         }
     }
 

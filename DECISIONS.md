@@ -14,6 +14,43 @@ place with the old form recorded under revisions — the entry is not duplicated
 
 ---
 
+## 2026-09-16 — reuse is found by an explicit scan that keeps digests, not values
+
+**Decided:** 2026-09-16
+
+**Decision.** The sidebar carries a fifth smart filter, *Reused value*. Unlike
+the other four it cannot be answered from `/api/list`, so it is empty until the
+operator presses "Scan N secrets" in the list column. The scan fetches every
+secret's active value eight at a time, hashes each response with SHA-256 as it
+arrives, and keeps the digest alone; the plaintext lives no longer than the
+expression that hashes it. Digests are memory-only and are dropped when the
+server changes. The sidebar shows a dash rather than a zero before a scan.
+
+**Reasoning.** Two secrets hold the same value or they do not, and setec has no
+way to answer that without handing over both values: `/api/list` carries no
+digest, and there is no compare endpoint. Hashing is what makes the comparison
+safe to hold, but it does not make the *reading* free — the scan is the one
+operation in the app that reads values the operator did not point at, and every
+read is a get the server can audit. That is why it never starts on its own, why
+the prompt states the cost in the number of secrets it will read, and why the
+count is a dash until it has run.
+
+A digest is not storable either: setec secrets include values with little
+entropy, and a stored SHA-256 of one is guessable offline. Nothing is written
+to disk.
+
+**Alternative considered.** Scanning automatically on launch or after each
+refresh. Rejected: it would turn every launch into several hundred audited
+reads of values nobody asked to see, which is the opposite of the rule the rest
+of the app follows. Also rejected: comparing only within the selected group,
+which would miss exactly the reuse that matters — the same value under two
+different prefixes, which is what the first live scan found.
+
+**Trigger to re-open.** setec exposing a digest in `/api/list` or `/api/info`,
+which would make the filter free and the scan unnecessary.
+
+---
+
 ## 2026-09-16 — no keyboard shortcut carries Shift, and copying sits on the value
 
 **Decided:** 2026-09-16
