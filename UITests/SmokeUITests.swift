@@ -92,10 +92,14 @@ final class SmokeUITests: XCTestCase {
         let card = list.cells.firstMatch
         XCTAssertTrue(card.waitForExistence(timeout: 5))
         card.click()
-        let panel = app.descendants(matching: .any).matching(identifier: "value.panel").firstMatch
+        let panel = app.staticTexts["value.panel"].firstMatch
         XCTAssertTrue(panel.waitForExistence(timeout: 5))
         XCTAssertFalse(app.buttons["value.copy"].exists, "hidden until the pointer is on the panel")
-        panel.hover()
+        // Hovered by coordinate, not by element: SwiftUI nests the value in a
+        // second static text of the identical frame, so `hover()` on either
+        // fails with "No unoccluded regions … interact with a descendant".
+        // A pointer does not care about that nesting, and neither does this.
+        panel.coordinate(withNormalizedOffset: CGVector(dx: 0.5, dy: 0.5)).hover()
         let copy = app.buttons["value.copy"]
         XCTAssertTrue(copy.waitForExistence(timeout: 3))
         XCTAssertFalse(app.buttons["detail.copy"].exists, "the action bar no longer carries it")
