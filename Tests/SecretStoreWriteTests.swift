@@ -78,10 +78,39 @@ final class SecretStoreWriteTests: XCTestCase {
         XCTAssertNil(store.selectedName)
     }
 
+    /// The status code is not the confirmation: a server that answers 200 and
+    /// keeps the secret must not be reported as a successful deletion.
+    func testADeleteThatChangesNothingIsReportedAsAFailure() async {
+        answerList()
+        StubURLProtocol.exchange.answer("/api/delete", json: "null")
+        await store.refresh()
+        store.selectedName = "a/b"
+        // The list keeps answering with the secret, as a refusing server would.
+        let deleted = await store.deleteSecret(name: "a/b")
+        XCTAssertFalse(deleted, "accepted by the server, but nothing was removed")
+        XCTAssertEqual(
+            store.problem,
+            "The server accepted the delete, but a/b is still in the list. Nothing was removed."
+        )
+        XCTAssertEqual(store.secrets.map(\.name), ["a/b"])
+    }
+
+    func testAVersionDeleteThatChangesNothingIsReportedAsAFailure() async {
+        answerList(#"[{"Name":"a/b","Versions":[1,2],"ActiveVersion":1}]"#)
+        StubURLProtocol.exchange.answer("/api/delete-version", json: "null")
+        await store.refresh()
+        let deleted = await store.deleteVersion(name: "a/b", version: 2)
+        XCTAssertFalse(deleted)
+        XCTAssertEqual(store.problem, "The server accepted the delete, but v2 of a/b is still in the list.")
+    }
+
     func testDeletingAVersionKeepsTheSecret() async {
         answerList(#"[{"Name":"a/b","Versions":[1,2],"ActiveVersion":1}]"#)
         StubURLProtocol.exchange.answer("/api/delete-version", json: "null")
         await store.refresh()
+        // The refresh inside the call sees the version gone, as a server that
+        // honoured the request would report it.
+        answerList(#"[{"Name":"a/b","Versions":[1],"ActiveVersion":1}]"#)
         let deleted = await store.deleteVersion(name: "a/b", version: 2)
         XCTAssertTrue(deleted)
         let body = StubURLProtocol.exchange.lastBody(to: "/api/delete-version")

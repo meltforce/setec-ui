@@ -303,6 +303,13 @@ writing a view, `mac-app-verify` before claiming a task done.
   the field applies. To test a different server from here, launch without it:
   `env -u SETEC_SERVER open -n ".build/Build/Products/Debug/Setec UI.app"`.
   Measured 2026-09-18 with `ps eww` on the running process.
+- **A write is confirmed by re-reading, never by the status code.** `delete`
+  and `delete-version` re-list and check that the name or the version is
+  actually gone; a 200 with nothing removed is reported as a failure
+  (`SecretStore.Unconfirmed`). The rule comes from a measured case in the
+  fleet's backup tooling on 2026-09-18: `pvesm free` exits 0 when PBS refuses
+  the deletion, and the loop reported "forgotten: 21, failed: 0" with two
+  snapshots still present.
 - **A setec outage reads as a credential problem in everything that depends on
   it.** setec is an LXC on `walter` (homelab `architecture/OVERVIEW.md`
   § *Secrets and identity*), so a reboot of that node takes it down;

@@ -259,6 +259,12 @@ final class SecretStore {
         }
     }
 
+    /// A deletion is confirmed by re-reading the list, never by the status
+    /// code alone. A store that answers 200 and keeps the secret would
+    /// otherwise close the sheet and report success while the name is still
+    /// there. The same shape bit the fleet's backup tooling on 2026-09-18:
+    /// `pvesm free` exits 0 when PBS refuses the deletion, and the loop
+    /// reported "forgotten: 21, failed: 0" with two still present.
     func deleteSecret(name: String) async -> Bool {
         await write(describing: "POST /api/delete {\"Name\":\"\(name)\"}") {
             try await self.client.delete(name: name)
@@ -266,6 +272,9 @@ final class SecretStore {
                 self.selectedName = nil
             }
             await self.refresh()
+            guard !self.secrets.contains(where: { $0.name == name }) else {
+                throw Unconfirmed.secret(name)
+            }
         }
     }
 
@@ -273,6 +282,26 @@ final class SecretStore {
         await write(describing: "POST /api/delete-version {\"Name\":\"\(name)\",\"Version\":\(version)}") {
             try await self.client.deleteVersion(name: name, version: version)
             await self.refresh()
+            let stillThere = self.secrets.first { $0.name == name }?.versions.contains(version) ?? false
+            guard !stillThere else {
+                throw Unconfirmed.version(name, version)
+            }
+        }
+    }
+
+    /// The server accepted the call and the list still shows what it was asked
+    /// to remove.
+    enum Unconfirmed: LocalizedError {
+        case secret(String)
+        case version(String, Int)
+
+        var errorDescription: String? {
+            switch self {
+            case let .secret(name):
+                "The server accepted the delete, but \(name) is still in the list. Nothing was removed."
+            case let .version(name, version):
+                "The server accepted the delete, but v\(version) of \(name) is still in the list."
+            }
         }
     }
 
