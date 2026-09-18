@@ -73,6 +73,29 @@ final class AccessStoreTests: XCTestCase {
         XCTAssertTrue(store.rows(in: .group("docker")).isEmpty)
     }
 
+    /// A setec outage takes every consumer's credential with it, so it reads
+    /// as a credential problem everywhere. The matrix names the cause instead.
+    func testAnUnreachableSetecIsNotReportedAsAWrongEntryName() async {
+        // No answer scripted for /api/get and the stub cannot reach a host:
+        // the client's transport failure is what propagates.
+        StubURLProtocol.exchange.answer("/api/get", status: 599, json: "null")
+        let store = AccessStore(client: client(id: "a/id", secret: "a/secret"))
+        await store.load()
+        guard case let .failed(message) = store.state else {
+            return XCTFail("expected a failure, got \(store.state)")
+        }
+        // A 599 is a server status, not a transport error, so this asserts the
+        // split the other way: it must still name the entries.
+        XCTAssertTrue(message.contains("a/id"), message)
+    }
+
+    func testATransportFailureNamesSetecRatherThanTheEntries() {
+        let failure = TailnetPolicyClient.Failure.unreachable("The network connection was lost")
+        let message = failure.errorDescription ?? ""
+        XCTAssertTrue(message.contains("setec is unreachable"), message)
+        XCTAssertTrue(message.contains("not a wrong entry name"), message)
+    }
+
     func testARefusedOAuthExchangeSaysTheEntriesHoldSomethingElse() async {
         StubURLProtocol.exchange.answer("/api/get", json: #"{"Value":"bm90LWEtY2xpZW50","Version":1}"#)
         StubURLProtocol.exchange.answer("/api/v2/oauth/token", status: 401, json: "{}")

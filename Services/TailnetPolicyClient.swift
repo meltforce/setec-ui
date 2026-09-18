@@ -43,6 +43,14 @@ struct TailnetPolicyClient: Sendable {
     }
 
     enum Failure: LocalizedError {
+        /// setec itself could not be reached. Kept apart from `credential`
+        /// because the two have opposite remedies and look alike from here: a
+        /// setec outage surfaces in every consumer as a credential problem
+        /// rather than as a missing host. Observed 2026-09-18, when setec's
+        /// LXC went down with its Proxmox node and `git-credential-setec`
+        /// answered `could not read Username for https://git…`, which names
+        /// the credential and not the cause.
+        case unreachable(String)
         case credential(String)
         case token(Int)
         case policy(Int)
@@ -51,6 +59,11 @@ struct TailnetPolicyClient: Sendable {
 
         var errorDescription: String? {
             switch self {
+            case let .unreachable(reason):
+                """
+                setec is unreachable, so the OAuth client could not be read — \(reason). \
+                This is not a wrong entry name: nothing was asked and nothing answered.
+                """
             case let .credential(detail): "Cannot read the OAuth client from setec — \(detail)"
             case let .token(code):
                 code == 401
@@ -100,6 +113,9 @@ struct TailnetPolicyClient: Sendable {
             id = try await setec.get(name: names.clientID).value
             secret = try await setec.get(name: names.clientSecret).value
         } catch let failure as SetecClient.Failure {
+            if case let .transport(reason) = failure {
+                throw Failure.unreachable(reason)
+            }
             // The name is reported back, because a wrong name is the likely
             // cause and the operator can only correct what is named.
             throw Failure.credential("\(names.clientID) / \(names.clientSecret): \(failure.localizedDescription)")

@@ -295,6 +295,21 @@ writing a view, `mac-app-verify` before claiming a task done.
   capsule, and with `.circle` set it draws no background at all. SwiftUI's
   `Menu` will not take the round shape under any combination: an icon-only
   menu button is a `Button` with an `NSMenu` — `App/Components/IconMenuButton.swift`.
+- **`make run` hands the app the shell's `SETEC_SERVER`; a launch from the
+  Dock does not.** The operator's profile exports it, so an app started from
+  the terminal inherits it and the environment wins over the Settings field —
+  which then appears to do nothing, although the field is disabled and says so.
+  The installed app started from Spotlight or the Dock has no such variable and
+  the field applies. To test a different server from here, launch without it:
+  `env -u SETEC_SERVER open -n ".build/Build/Products/Debug/Setec UI.app"`.
+  Measured 2026-09-18 with `ps eww` on the running process.
+- **A setec outage reads as a credential problem in everything that depends on
+  it.** setec is an LXC on `walter` (homelab `architecture/OVERVIEW.md`
+  § *Secrets and identity*), so a reboot of that node takes it down;
+  `git-credential-setec` then answers `could not read Username for
+  https://git…`, which names the credential and not the cause. The access
+  matrix keeps the two apart — `TailnetPolicyClient.Failure.unreachable` says
+  setec is unreachable, `.credential` says the entry could not be read.
 - **A synthesized `CGEvent` mouse move does not reach SwiftUI's `.onHover`.**
   Rollover behaviour cannot be shown with `screencapture` from here; assert it
   in a UI test, where `XCUIElement.hover()` works, and assert the geometry
