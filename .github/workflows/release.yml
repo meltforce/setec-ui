@@ -127,9 +127,11 @@ jobs:
           DMG: ${{ steps.dmg.outputs.path }}
           SHA256: ${{ steps.dmg.outputs.sha256 }}
         run: |
-          gh release create "$GITHUB_REF_NAME" "$DMG" \
-            --title "Setec UI $VERSION" \
-            --notes "$(cat <<NOTES
+          # The notes go to a file rather than through `--notes "$(cat <<…)"`:
+          # bash 3.2, which is what /bin/bash is on the runner, mis-parses a
+          # heredoc inside a command substitution and stops at the first
+          # apostrophe in the text ("Tailscale's" — measured 2026-09-21).
+          cat > "$RUNNER_TEMP/notes.md" <<NOTES
           A native macOS client for [setec](https://github.com/tailscale/setec),
           Tailscale's secrets service: find a secret, reveal and copy its value,
           publish a new version, roll back by activating an older one, delete a
@@ -178,7 +180,10 @@ jobs:
 
           [Commits in this release](https://github.com/meltforce/setec-ui/commits/$GITHUB_REF_NAME)
           NOTES
-          )"
+
+          gh release create "$GITHUB_REF_NAME" "$DMG" \
+            --title "Setec UI $VERSION" \
+            --notes-file "$RUNNER_TEMP/notes.md"
 
       # The tap is written by CI and is therefore GitHub-canonical, unlike this
       # repository, which is a mirror. GITHUB_TOKEN cannot reach another

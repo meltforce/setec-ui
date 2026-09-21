@@ -20,7 +20,7 @@ XCB         := $(shell command -v xcbeautify 2>/dev/null)
 PIPE        := $(if $(XCB),| $(XCB) --quiet,)
 XCODEBUILD  := xcodebuild -project "$(PROJECT)" -scheme "$(SCHEME)" -configuration "$(CONFIG)" -derivedDataPath "$(DERIVED)" -destination 'platform=macOS,arch=arm64'
 
-.PHONY: project build run stop check verify test test-unit format lint screenshot screenshot-native screenshot-self inspect click type key at eval logs install dmg notarize clean help
+.PHONY: project build run stop check verify test test-unit format lint workflows screenshot screenshot-native screenshot-self inspect click type key at eval logs install dmg notarize clean help
 
 help:
 	@grep -E '^[a-z-]+:.*## ' $(MAKEFILE_LIST) | sed 's/:.*## /\t/' | column -t -s $$'\t'
@@ -54,7 +54,10 @@ test-unit: project ## Unit tests only, without the UI bundle
 # well under a second and the UI bundle launches the app once per test, which
 # is a minute and more — too slow to sit behind every edit, and the reason the
 # full run belongs before an install rather than after every change.
-check: lint build test-unit ## lint, build, unit tests — the gate for a change
+workflows: ## Syntax-check the workflow shell blocks against bash 3.2
+	./tools/check-workflow.sh
+
+check: lint workflows build test-unit ## lint, build, unit tests — the gate for a change
 	@echo "check: green for $(APP_NAME) ($(CONFIG))"
 
 verify: lint build test ## check plus the UI tests — the gate before install and release

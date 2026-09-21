@@ -328,6 +328,11 @@ writing a view, `mac-app-verify` before claiming a task done.
   Rollover behaviour cannot be shown with `screencapture` from here; assert it
   in a UI test, where `XCUIElement.hover()` works, and assert the geometry
   (`frame.midY`, `frame.height`) rather than trying to photograph it.
+- **`/bin/bash` on a GitHub macOS runner is 3.2, and a Mac with Homebrew bash
+  is not.** A `run:` block that parses in the terminal can fail on the runner:
+  `--notes "$(cat <<NOTES … NOTES)"` stops at the first apostrophe in the
+  heredoc under 3.2 and cost a release run on 2026-09-21. `make check` runs
+  `tools/check-workflow.sh`, which parses every `run:` block with `/bin/bash -n`.
 - **A notarization ticket covers one artifact, not what is inside it.** The
   app is submitted and stapled first, then the image is built from the stapled
   bundle and submitted in turn. An app whose bundle carries no ticket is
