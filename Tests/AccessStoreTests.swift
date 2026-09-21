@@ -70,7 +70,7 @@ final class AccessStoreTests: XCTestCase {
         XCTAssertTrue(message.contains("wrong/id"), message)
         XCTAssertTrue(message.contains("wrong/secret"), message)
         XCTAssertNil(store.policy)
-        XCTAssertTrue(store.rows(in: .group("docker")).isEmpty)
+        XCTAssertTrue(store.rows(in: .group("apps")).isEmpty)
     }
 
     /// A setec outage takes every consumer's credential with it, so it reads
@@ -171,6 +171,6 @@ final class AccessStoreTests: XCTestCase {
         XCTAssertEqual(store.state, .disabled)
         XCTAssertNil(store.policy)
         XCTAssertTrue(store.scopes.isEmpty)
-        XCTAssertTrue(store.rows(in: .group("docker")).isEmpty)
+        XCTAssertTrue(store.rows(in: .group("apps")).isEmpty)
     }
 }

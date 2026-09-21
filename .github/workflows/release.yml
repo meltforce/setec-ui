@@ -34,7 +34,7 @@ jobs:
 
     steps:
       - name: Check out the tag
-        uses: actions/checkout@v4
+        uses: actions/checkout@v7
 
       - name: Resolve the version
         id: version
@@ -113,7 +113,7 @@ jobs:
           echo "sha256=$(shasum -a 256 "$DMG" | awk '{print $1}')" >> "$GITHUB_OUTPUT"
 
       - name: Keep the DMG as a run artifact
-        uses: actions/upload-artifact@v4
+        uses: actions/upload-artifact@v7
         with:
           name: Setec-UI-${{ steps.version.outputs.version }}
           path: ${{ steps.dmg.outputs.path }}

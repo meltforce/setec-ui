@@ -9,9 +9,9 @@ final class SecretStoreTests: XCTestCase {
 
     func testGroupCountsAreDerivedFromTheNames() {
         let counts = Dictionary(uniqueKeysWithValues: store().groupCounts.map { ($0.group, $0.count) })
-        XCTAssertEqual(counts["docker"], 2)
-        XCTAssertEqual(counts["homelab"], 2)
-        XCTAssertEqual(counts["juno"], 1)
+        XCTAssertEqual(counts["apps"], 2)
+        XCTAssertEqual(counts["infra"], 2)
+        XCTAssertEqual(counts["ops"], 1)
         XCTAssertNil(counts["standalone-token"], "a name without a slash forms no group")
     }
 
@@ -21,31 +21,31 @@ final class SecretStoreTests: XCTestCase {
 
     func testSelectingAGroupFiltersTheList() {
         let store = store()
-        store.scope = .group("docker")
-        XCTAssertEqual(store.visible.map(\.name), ["docker/immich/api-key", "docker/immich/db-password"])
-        XCTAssertEqual(store.listTitle, "docker/")
+        store.scope = .group("apps")
+        XCTAssertEqual(store.visible.map(\.name), ["apps/photos/api-key", "apps/photos/db-password"])
+        XCTAssertEqual(store.listTitle, "apps/")
     }
 
     func testAFilterReplacesTheGroupSelection() {
         let store = store()
-        store.scope = .group("docker")
+        store.scope = .group("apps")
         store.scope = .filter(.latestNotActive)
-        XCTAssertEqual(store.visible.map(\.name), ["homelab/forgejo-api-token"])
+        XCTAssertEqual(store.visible.map(\.name), ["infra/git-api-token"])
         XCTAssertEqual(store.count(for: .multipleVersions), 4)
     }
 
     func testSearchOverridesScopeAndSearchesEverySecret() {
         let store = store()
-        store.scope = .group("juno")
-        store.query = "immich"
+        store.scope = .group("ops")
+        store.query = "photos"
         XCTAssertEqual(store.visible.count, 2)
-        XCTAssertEqual(store.listTitle, "Search: immich")
+        XCTAssertEqual(store.listTitle, "Search: photos")
     }
 
     func testChangingTheScopeClearsTheSearch() {
         let store = store()
-        store.query = "immich"
-        store.scope = .group("homelab")
+        store.query = "photos"
+        store.scope = .group("infra")
         XCTAssertEqual(store.query, "")
     }
 
@@ -59,24 +59,24 @@ final class SecretStoreTests: XCTestCase {
 
     func testSelectingASecretResetsTheRevealState() {
         let store = store()
-        store.selectedName = "juno/grafana-admin"
+        store.selectedName = "ops/grafana-admin"
         XCTAssertNil(store.revealed)
-        XCTAssertEqual(store.lastCall, "Selected juno/grafana-admin")
+        XCTAssertEqual(store.lastCall, "Selected ops/grafana-admin")
     }
 
     func testTheSnapshotCarriesNoValue() {
         let store = store()
-        store.selectedName = "juno/grafana-admin"
+        store.selectedName = "ops/grafana-admin"
         let snapshot = store.snapshot()
         XCTAssertEqual(snapshot["count"] as? Int, 6)
-        XCTAssertEqual(snapshot["selected"] as? String, "juno/grafana-admin")
+        XCTAssertEqual(snapshot["selected"] as? String, "ops/grafana-admin")
         XCTAssertEqual(snapshot["revealed"] as? Bool, false)
         XCTAssertNil(snapshot["value"])
     }
 
     func testAutocompleteCandidatesComeFromTheLoadedNames() {
         let prefixes = store().prefixCandidates.map(\.prefix)
-        XCTAssertTrue(prefixes.contains("docker/immich/"))
-        XCTAssertEqual(store().topLevelGroups, ["docker", "homelab", "juno"])
+        XCTAssertTrue(prefixes.contains("apps/photos/"))
+        XCTAssertEqual(store().topLevelGroups, ["apps", "infra", "ops"])
     }
 }

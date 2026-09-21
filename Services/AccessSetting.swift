@@ -2,8 +2,8 @@ import Foundation
 
 /// Which two setec entries hold the Tailscale OAuth client the access matrix
 /// reads the tailnet policy with. The names are a setting rather than a
-/// constant: they are this fleet's names, and an app pointed at a different
-/// setec server has no reason to carry them.
+/// constant: the names belong to the store the app is pointed at, and another
+/// store has no reason to carry the same ones.
 ///
 /// Blank is a valid answer and means the matrix is switched off — not that it
 /// failed. A store with no policy credential is an ordinary configuration, and
@@ -13,9 +13,8 @@ enum AccessSetting {
     static let clientSecretKey = "tailscaleOAuthClientSecretSecret"
 
     /// The app's own entries, under its own prefix. They hold a Tailscale
-    /// OAuth client with `policy_file:read`; homelab `SECRETS.md`
-    /// § *Tailscale control API* describes the exchange and which scopes the
-    /// fleet's read-only client carries.
+    /// OAuth client with the `policy_file:read` scope and nothing else; the
+    /// exchange is in `TailnetPolicyClient`.
     static let defaultClientIDSecret = "setec-ui/ts-client-id"
     static let defaultClientSecretSecret = "setec-ui/ts-client-secret"
 

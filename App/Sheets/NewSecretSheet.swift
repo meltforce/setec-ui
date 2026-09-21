@@ -26,7 +26,7 @@ struct NewSecretSheet: View {
                 Text("New secret")
                     .font(Typeface.sheetTitle)
                     .foregroundStyle(Palette.textPrimary)
-                Text(verbatim: "On \(store.server.host() ?? store.server.absoluteString)")
+                Text(verbatim: "On \(store.server?.host() ?? store.server?.absoluteString ?? "no server")")
                     .font(Typeface.control)
                     .foregroundStyle(Palette.textTertiary)
             }

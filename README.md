@@ -28,10 +28,9 @@ the local `tailscaled`, so there is no login screen and no token to enter.
 
 ## What runs outside this checkout
 
-- The setec server `https://setec.coydog-fence.ts.net`, and the Tailscale
-  control API at `api.tailscale.com`. Both are read over the tailnet; neither is
-  configured from here. `SETEC_SERVER` and the Settings field point the app at a
-  different server, and Settings › Access matrix names the two setec entries
+- A setec server on the tailnet, and the Tailscale control API at
+  `api.tailscale.com`. Neither is configured from here, and the app ships with
+  no server built in: `SETEC_SERVER` or the Settings field names one, and Settings › Access matrix names the two setec entries
   holding the OAuth client the policy is read with — empty switches the matrix
   off and changes nothing else.
 - The `tailscale` CLI, which the app runs once per launch to read the identity
@@ -55,8 +54,9 @@ make verify     # check plus the UI tests — run this before make install
 
 ## Releases
 
-`git.coydog-fence.ts.net/meltforce.net/setec-ui` is canonical;
-`github.com/meltforce/setec-ui` is a push mirror and carries the downloads.
+Development happens on a Forgejo instance inside the tailnet, which is
+canonical; `github.com/meltforce/setec-ui` is a push mirror and carries the
+downloads.
 Nothing originates on the mirror — a branch, tag or commit that exists only on
 GitHub is removed by the next `git push --mirror` (homelab `STANDARDS.md`
 § *Git & repos*).

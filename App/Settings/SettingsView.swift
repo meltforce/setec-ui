@@ -26,7 +26,7 @@ struct ServerSettings: View {
                 TextField(
                     "Server",
                     text: $draft,
-                    prompt: Text(verbatim: ServerSetting.fallback.absoluteString)
+                    prompt: Text(verbatim: ServerSetting.example)
                 )
                 .accessibilityIdentifier("settings.server")
                 .disabled(ServerSetting.isOverriddenByEnvironment)
@@ -34,7 +34,7 @@ struct ServerSettings: View {
                     Button("Apply") { apply() }
                         .disabled(ServerSetting.isOverriddenByEnvironment || parsed == nil)
                         .accessibilityIdentifier("settings.server.apply")
-                    Button("Use the default") { reset() }
+                    Button("Clear") { clear() }
                         .disabled(ServerSetting.isOverriddenByEnvironment || stored.isEmpty)
                         .accessibilityIdentifier("settings.server.reset")
                     Spacer()
@@ -68,7 +68,7 @@ struct ServerSettings: View {
             }
         }
         .formStyle(.grouped)
-        .onAppear { draft = stored.isEmpty ? store.server.absoluteString : stored }
+        .onAppear { draft = stored.isEmpty ? (store.server?.absoluteString ?? "") : stored }
     }
 
     private var parsed: URL? {
@@ -80,6 +80,7 @@ struct ServerSettings: View {
         case .loaded: "Yes — \(store.secrets.count) secrets visible"
         case .loading: "Checking…"
         case .idle: "Not contacted yet"
+        case .unconfigured: "No server named"
         case .failed: "No"
         }
     }
@@ -89,10 +90,11 @@ struct ServerSettings: View {
             return """
             SETEC_SERVER is set in the environment and decides, so this field \
             has no effect in this launch. The window talks to \
-            \(store.server.absoluteString).
+            \(store.server?.absoluteString ?? "no server").
             """
         }
         return """
+        The app carries no built-in server, so this field or SETEC_SERVER names one. \
         Identity comes from the local tailscaled, so there is nothing to sign in with. \
         SETEC_SERVER overrides this field when it is set.
         """
@@ -108,11 +110,11 @@ struct ServerSettings: View {
         status = "Applied"
     }
 
-    private func reset() {
+    private func clear() {
         stored = ""
-        draft = ServerSetting.fallback.absoluteString
-        store.use(server: ServerSetting.fallback)
-        status = "Back to the default"
+        draft = ""
+        store.forgetServer()
+        status = "Cleared"
     }
 }
 
@@ -232,8 +234,10 @@ struct AccessMatrixSettings: View {
         storedSecret = draftSecret.trimmingCharacters(in: .whitespacesAndNewlines)
         status = ""
         Task {
-            let client = AccessSetting.resolve().map {
-                TailnetPolicyClient(setec: SetecClient(server: store.server), names: $0)
+            let client = store.server.flatMap { server in
+                AccessSetting.resolve().map {
+                    TailnetPolicyClient(setec: SetecClient(server: server), names: $0)
+                }
             }
             await access.use(client: client)
         }

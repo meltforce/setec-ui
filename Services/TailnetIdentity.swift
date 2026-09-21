@@ -12,7 +12,7 @@ import Foundation
 struct TailnetIdentity: Sendable, Hashable {
     /// The login name of the user the node is signed in as, `linus@example.com`.
     var loginName: String
-    /// The node's MagicDNS name without the trailing dot, `blackbook.example.ts.net`.
+    /// The node's MagicDNS name without the trailing dot, `mac.example.ts.net`.
     var nodeName: String
 
     /// The short form the toolbar shows: `linus@example`.

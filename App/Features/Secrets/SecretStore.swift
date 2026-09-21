@@ -12,6 +12,8 @@ final class SecretStore {
 
     enum Loading: Equatable {
         case idle
+        /// No server is configured, so nothing has been asked of one.
+        case unconfigured
         case loading
         case loaded
         case failed(String)
@@ -77,8 +79,8 @@ final class SecretStore {
 
     var sheet: Sheet?
 
-    private(set) var server: URL
-    private var client: SetecClient
+    private(set) var server: URL?
+    private var client: SetecClient?
     private var hideTask: Task<Void, Never>?
     private var copyTask: Task<Void, Never>?
     private var pasteboardTask: Task<Void, Never>?
@@ -90,14 +92,31 @@ final class SecretStore {
 
     // MARK: - Lifecycle
 
-    init(server: URL = ServerSetting.resolve(), session: URLSession = .shared) {
+    init(server: URL? = ServerSetting.resolve(), session: URLSession = .shared) {
         self.server = server
-        client = SetecClient(server: server, session: session)
+        client = server.map { SetecClient(server: $0, session: session) }
+        loading = server == nil ? .unconfigured : .idle
+    }
+
+    /// Raised when a call is made while no server is configured. The UI keeps
+    /// that state out of reach, so this is the guard behind it rather than a
+    /// message anyone is expected to read.
+    struct NoServer: LocalizedError {
+        var errorDescription: String? {
+            "No setec server is configured."
+        }
+    }
+
+    /// Every request goes through here, so an app without a server reports one
+    /// state instead of ten different failures.
+    private func connected() throws -> SetecClient {
+        guard let client else { throw NoServer() }
+        return client
     }
 
     /// A store with a fixed list and no network, for previews and tests.
     static func preview(_ secrets: [Secret] = Secret.samples) -> SecretStore {
-        let store = SecretStore(server: ServerSetting.fallback)
+        let store = SecretStore(server: URL(string: ServerSetting.example)!)
         store.adopt(secrets)
         store.loading = .loaded
         store.lastSynced = .now
@@ -110,11 +129,21 @@ final class SecretStore {
     func use(server url: URL) {
         guard url != server else { return }
         server = url
-        client = SetecClient(server: url, session: client.session)
+        client = SetecClient(server: url, session: client?.session ?? .shared)
         secrets = []
         selectedName = nil
         loading = .idle
         Task { await refresh() }
+    }
+
+    /// Drops the configured server. The Settings window calls this when the
+    /// field is cleared, and there is nothing to fall back to.
+    func forgetServer() {
+        server = nil
+        client = nil
+        secrets = []
+        selectedName = nil
+        loading = .unconfigured
     }
 
     func loadIdentity() async {
@@ -127,10 +156,14 @@ final class SecretStore {
         if case .loading = loading {
             return
         }
+        guard client != nil else {
+            loading = .unconfigured
+            return
+        }
         loading = .loading
         lastCall = "POST /api/list"
         do {
-            let infos = try await client.list()
+            let infos = try await connected().list()
             adopt(infos.map(Secret.init))
             loading = .loaded
             lastSynced = .now
@@ -159,7 +192,7 @@ final class SecretStore {
         defer { isFetchingValue = false }
         lastCall = "POST /api/get {\"Name\":\"\(secret.name)\"}"
         do {
-            let value = try await client.get(name: secret.name)
+            let value = try await connected().get(name: secret.name)
             revealed = Revealed(name: secret.name, version: value.version, value: value.value)
             problem = nil
             scheduleHide()
@@ -191,7 +224,7 @@ final class SecretStore {
         defer { isFetchingValue = false }
         lastCall = "POST /api/get {\"Name\":\"\(secret.name)\"}"
         do {
-            let value = try await client.get(name: secret.name)
+            let value = try await connected().get(name: secret.name)
             let change = SecretPasteboard.copy(value.value)
             problem = nil
             confirmCopy()
@@ -207,7 +240,7 @@ final class SecretStore {
         guard let secret = selected else { return nil }
         lastCall = "POST /api/get {\"Name\":\"\(secret.name)\"}"
         do {
-            return try await client.get(name: secret.name).value
+            return try await connected().get(name: secret.name).value
         } catch {
             problem = message(for: error)
             return nil
@@ -239,9 +272,9 @@ final class SecretStore {
     /// The two are separate calls, which is what the sheet's API preview says.
     func createSecret(name: String, value: String, activate: Bool) async -> Bool {
         await write(describing: activate ? "POST /api/put → POST /api/activate" : "POST /api/put") {
-            let version = try await self.client.put(name: name, value: value)
+            let version = try await self.connected().put(name: name, value: value)
             if activate {
-                try await self.client.activate(name: name, version: version)
+                try await self.connected().activate(name: name, version: version)
             }
             await self.refresh()
             self.selectedName = name
@@ -254,7 +287,7 @@ final class SecretStore {
 
     func activate(name: String, version: Int) async -> Bool {
         await write(describing: "POST /api/activate {\"Name\":\"\(name)\",\"Version\":\(version)}") {
-            try await self.client.activate(name: name, version: version)
+            try await self.connected().activate(name: name, version: version)
             await self.refresh()
         }
     }
@@ -267,7 +300,7 @@ final class SecretStore {
     /// reported "forgotten: 21, failed: 0" with two still present.
     func deleteSecret(name: String) async -> Bool {
         await write(describing: "POST /api/delete {\"Name\":\"\(name)\"}") {
-            try await self.client.delete(name: name)
+            try await self.connected().delete(name: name)
             if self.selectedName == name {
                 self.selectedName = nil
             }
@@ -280,7 +313,7 @@ final class SecretStore {
 
     func deleteVersion(name: String, version: Int) async -> Bool {
         await write(describing: "POST /api/delete-version {\"Name\":\"\(name)\",\"Version\":\(version)}") {
-            try await self.client.deleteVersion(name: name, version: version)
+            try await self.connected().deleteVersion(name: name, version: version)
             await self.refresh()
             let stillThere = self.secrets.first { $0.name == name }?.versions.contains(version) ?? false
             guard !stillThere else {
@@ -351,7 +384,7 @@ final class SecretStore {
     /// no value ever reaches this dictionary.
     func snapshot() -> [String: Any] {
         [
-            "server": server.absoluteString,
+            "server": server?.absoluteString ?? NSNull(),
             "count": secrets.count,
             "visible": visible.count,
             "scope": scope.title,
@@ -373,11 +406,11 @@ extension Secret {
     /// versions, one with a newer inactive version, one without a rollback,
     /// and an ungrouped name.
     static let samples: [Secret] = [
-        Secret(name: "docker/immich/api-key", versions: [1, 2, 3], activeVersion: 3),
-        Secret(name: "docker/immich/db-password", versions: [1], activeVersion: 1),
-        Secret(name: "homelab/forgejo-api-token", versions: [1, 2], activeVersion: 1),
-        Secret(name: "homelab/hetzner-api-token", versions: [1, 2, 3], activeVersion: 3),
-        Secret(name: "juno/grafana-admin", versions: [1], activeVersion: 1),
+        Secret(name: "apps/photos/api-key", versions: [1, 2, 3], activeVersion: 3),
+        Secret(name: "apps/photos/db-password", versions: [1], activeVersion: 1),
+        Secret(name: "infra/git-api-token", versions: [1, 2], activeVersion: 1),
+        Secret(name: "infra/host-api-token", versions: [1, 2, 3], activeVersion: 3),
+        Secret(name: "ops/grafana-admin", versions: [1], activeVersion: 1),
         Secret(name: "standalone-token", versions: [1, 2], activeVersion: 2),
     ]
 }

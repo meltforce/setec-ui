@@ -4,7 +4,7 @@ import XCTest
 final class TailnetPolicyTests: XCTestCase {
     private let json = """
     {
-      "groups": {"group:ops": ["a@example.com", "b@example.com"]},
+      "groups": {"group:admins": ["a@example.com", "b@example.com"]},
       "grants": [
         {
           "src": ["autogroup:admin"],
@@ -14,11 +14,11 @@ final class TailnetPolicyTests: XCTestCase {
           ]}
         },
         {
-          "src": ["tag:homelab", "group:ops"],
+          "src": ["tag:servers", "group:admins"],
           "dst": ["tag:setec"],
           "app": {"tailscale.com/cap/secrets": [
-            {"action": ["get"], "secret": ["docker/*"]},
-            {"action": ["info"], "secret": ["homelab/one"]}
+            {"action": ["get"], "secret": ["apps/*"]},
+            {"action": ["info"], "secret": ["infra/one"]}
           ]}
         },
         {
@@ -37,7 +37,7 @@ final class TailnetPolicyTests: XCTestCase {
     func testOnlySecretsGrantsAreParsed() throws {
         let policy = try policy()
         XCTAssertEqual(policy.rules.count, 3, "one entry per action/secret block, the other capability ignored")
-        XCTAssertEqual(policy.groups["group:ops"]?.count, 2)
+        XCTAssertEqual(policy.groups["group:admins"]?.count, 2)
     }
 
     func testNoRuleGrantsCreateVersion() throws {
@@ -54,28 +54,28 @@ final class TailnetPolicyTests: XCTestCase {
         let policy = try policy()
         let admin = try XCTUnwrap(policy.rules.first { $0.principals == ["autogroup:admin"] })
         XCTAssertEqual(admin.otherActions, ["list"])
-        let rows = try policy.access(in: .group("docker"), identity: nil)
+        let rows = try policy.access(in: .group("apps"), identity: nil)
         let adminRow = try XCTUnwrap(rows.first { $0.principal == "autogroup:admin" })
         XCTAssertEqual(adminRow.otherActions, ["list"])
-        let ops = try XCTUnwrap(rows.first { $0.principal == "group:ops" })
+        let ops = try XCTUnwrap(rows.first { $0.principal == "group:admins" })
         XCTAssertTrue(ops.otherActions.isEmpty)
     }
 
     func testPatternMatching() {
-        XCTAssertTrue(SecretPattern(text: "docker/*").matches(name: "docker/a/b"))
-        XCTAssertFalse(SecretPattern(text: "docker/*").matches(name: "dockerfile"))
-        XCTAssertTrue(SecretPattern(text: "homelab/one").matches(name: "homelab/one"))
-        XCTAssertFalse(SecretPattern(text: "homelab/one").matches(name: "homelab/one-more"))
+        XCTAssertTrue(SecretPattern(text: "apps/*").matches(name: "apps/a/b"))
+        XCTAssertFalse(SecretPattern(text: "apps/*").matches(name: "appsfile"))
+        XCTAssertTrue(SecretPattern(text: "infra/one").matches(name: "infra/one"))
+        XCTAssertFalse(SecretPattern(text: "infra/one").matches(name: "infra/one-more"))
         XCTAssertTrue(SecretPattern(text: "*").overlaps(group: "anything"))
-        XCTAssertTrue(SecretPattern(text: "docker/*").overlaps(group: "docker"))
-        XCTAssertFalse(SecretPattern(text: "docker/*").overlaps(group: "homelab"))
-        XCTAssertTrue(SecretPattern(text: "homelab/one").overlaps(group: "homelab"))
+        XCTAssertTrue(SecretPattern(text: "apps/*").overlaps(group: "apps"))
+        XCTAssertFalse(SecretPattern(text: "apps/*").overlaps(group: "infra"))
+        XCTAssertTrue(SecretPattern(text: "infra/one").overlaps(group: "infra"))
     }
 
     func testMatrixMergesRulesPerPrincipal() throws {
-        let rows = try policy().access(in: .group("docker"), identity: nil)
-        XCTAssertEqual(rows.map(\.principal), ["autogroup:admin", "group:ops", "tag:homelab"])
-        let ops = try XCTUnwrap(rows.first { $0.principal == "group:ops" })
+        let rows = try policy().access(in: .group("apps"), identity: nil)
+        XCTAssertEqual(rows.map(\.principal), ["autogroup:admin", "group:admins", "tag:servers"])
+        let ops = try XCTUnwrap(rows.first { $0.principal == "group:admins" })
         XCTAssertEqual(ops.capabilities, [.get])
         XCTAssertEqual(ops.note, "2 members")
     }
@@ -87,8 +87,8 @@ final class TailnetPolicyTests: XCTestCase {
 
     func testTheCallersOwnRowIsMarkedAndSortedFirst() throws {
         let identity = TailnetIdentity(loginName: "b@example.com", nodeName: "mac.example.ts.net")
-        let rows = try policy().access(in: .group("docker"), identity: identity)
-        XCTAssertEqual(rows.first?.principal, "group:ops")
+        let rows = try policy().access(in: .group("apps"), identity: identity)
+        XCTAssertEqual(rows.first?.principal, "group:admins")
         XCTAssertTrue(rows.first?.isSelf == true)
     }
 }

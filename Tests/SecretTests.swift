@@ -3,10 +3,10 @@ import XCTest
 
 final class SecretTests: XCTestCase {
     func testNameIsSplitIntoPrefixAndLeaf() {
-        let secret = Secret(name: "docker/immich/api-key", versions: [1, 2], activeVersion: 2)
-        XCTAssertEqual(secret.prefix, "docker/immich/")
+        let secret = Secret(name: "apps/photos/api-key", versions: [1, 2], activeVersion: 2)
+        XCTAssertEqual(secret.prefix, "apps/photos/")
         XCTAssertEqual(secret.leaf, "api-key")
-        XCTAssertEqual(secret.group, "docker")
+        XCTAssertEqual(secret.group, "apps")
     }
 
     func testAnUngroupedNameHasNoGroupAndNoPrefix() {

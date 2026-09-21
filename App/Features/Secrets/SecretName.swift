@@ -51,8 +51,8 @@ enum SecretName {
         return exists ? .available : .newGroup(group)
     }
 
-    /// One candidate per path level of every existing name: `docker/`,
-    /// `docker/immich/`, and so on, each with the number of secrets beneath it.
+    /// One candidate per path level of every existing name: `apps/`,
+    /// `apps/photos/`, and so on, each with the number of secrets beneath it.
     static func prefixes(in names: some Sequence<String>) -> [Candidate] {
         var counts: [String: Int] = [:]
         for name in names {

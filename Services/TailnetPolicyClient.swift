@@ -4,11 +4,11 @@ import Foundation
 /// policy-read endpoint, so the grants of other principals cannot come from
 /// the same server as the secrets (`DECISIONS.md`, 2026-09-16).
 ///
-/// The credential is the read-only OAuth client `homelab/ts-oauth-client-{id,
-/// secret}`, read from setec and exchanged for a bearer token; homelab
-/// `SECRETS.md` § *Tailscale control API* documents the exchange and records
-/// that the entries whose names contain "api key" are node auth keys that
-/// answer 401 here.
+/// The credential is a read-only OAuth client held in two setec entries, named
+/// in Settings › Access matrix (`AccessSetting`), read from setec and exchanged
+/// for a bearer token. A Tailscale *auth key* is not one of these: an auth key
+/// registers a node and answers 401 against this API, so an entry whose name
+/// reads like a key is not a substitute for the client.
 struct TailnetPolicyClient: Sendable {
     static let tokenURL = URL(string: "https://api.tailscale.com/api/v2/oauth/token")!
     static let policyURL = URL(string: "https://api.tailscale.com/api/v2/tailnet/-/acl")!
@@ -46,10 +46,10 @@ struct TailnetPolicyClient: Sendable {
         /// setec itself could not be reached. Kept apart from `credential`
         /// because the two have opposite remedies and look alike from here: a
         /// setec outage surfaces in every consumer as a credential problem
-        /// rather than as a missing host. Observed 2026-09-18, when setec's
-        /// LXC went down with its Proxmox node and `git-credential-setec`
-        /// answered `could not read Username for https://git…`, which names
-        /// the credential and not the cause.
+        /// rather than as a missing host. Observed 2026-09-18: the host running
+        /// setec rebooted, and the git credential helper that reads from setec
+        /// answered `could not read Username for https://git…`, which names the
+        /// credential and not the cause.
         case unreachable(String)
         case credential(String)
         case token(Int)

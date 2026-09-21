@@ -65,6 +65,15 @@ struct SecretListView: View {
                 .controlSize(.small)
                 .frame(maxWidth: .infinity, maxHeight: .infinity)
                 .accessibilityIdentifier("secrets.loading")
+        case .unconfigured:
+            ContentUnavailableView {
+                Label("No server yet", systemImage: "server.rack")
+            } description: {
+                Text("Name a setec server in Settings, or start the app with SETEC_SERVER set.")
+            } actions: {
+                SettingsLink { Text("Open Settings…") }
+                    .accessibilityIdentifier("secrets.configure")
+            }
         case let .failed(message):
             ContentUnavailableView {
                 Label("Cannot reach the server", systemImage: "network.slash")

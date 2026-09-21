@@ -58,9 +58,9 @@ final class AccessStore {
                     patterns: [SecretPattern(text: "*")]
                 ),
                 GrantRule(
-                    principals: ["tag:homelab"],
+                    principals: ["tag:servers"],
                     capabilities: [.get],
-                    patterns: [SecretPattern(text: "docker/*")]
+                    patterns: [SecretPattern(text: "apps/*")]
                 ),
             ],
             groups: [:]

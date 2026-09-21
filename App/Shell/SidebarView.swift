@@ -137,6 +137,7 @@ struct SidebarFooter: View {
         case .loading: "Syncing…"
         case .failed: "Sync failed"
         case .idle: "Not synced"
+        case .unconfigured: "No server"
         case .loaded:
             store.lastSynced.map { "Synced \(RelativeTime.compact(since: $0, now: now))" } ?? "Synced"
         }

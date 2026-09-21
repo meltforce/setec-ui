@@ -110,8 +110,8 @@ audit.
 **What the measurement showed**, because it decides how big the report is: a
 scan of the production store on 2026-09-16 read 288 values in under four
 seconds at eight requests in parallel and found 29 secrets sharing a value with
-at least one other — among them `claude/docker-pat` with `homelab/docker-pat`
-and `docker/rustfs/access-key` with `docker/rustfs/secret-key`.
+at least one other — among them one registry token stored twice under two
+prefixes, and an object store's access key and secret key holding one value.
 
 **Trigger to re-open.** setec exposing a digest in `/api/list` or `/api/info`,
 which makes the comparison free and puts the question back in reach of a filter.
@@ -363,21 +363,22 @@ instead.
 
 ---
 
-## 2026-09-16 — the server URL comes from a constant, the Settings field and `SETEC_SERVER`
+## 2026-09-16 — the server URL comes from the Settings field and `SETEC_SERVER`
 
-**Decided:** 2026-09-16
+**Decided:** 2026-09-16 · **Revised:** 2026-09-21
 
 **Decision.** `ServerSetting.resolve()` reads, in order: `SETEC_SERVER` from the
-environment, the value the Settings window stored in `UserDefaults`, then the
-built-in `https://setec.coydog-fence.ts.net`. The Settings field writes through
+environment, then the value the Settings window stored in `UserDefaults`. There
+is no third source: it returns `nil` when neither names a server, and the app
+reports that state rather than contacting anything
+(`SecretStore.Loading.unconfigured`). The Settings field writes through
 `SecretStore.use(server:)`, so a server change takes effect without a relaunch;
 while `SETEC_SERVER` is set the field is disabled and says so.
 
 **Reasoning.** The environment variable is what the `setec` CLI reads, so a
 shell that is already pointed at a server points the app at the same one. The
-Settings field is what a person without that shell uses. The constant is what
-makes the app work with neither. Building all three now costs one resolution
-function; adding the field later would mean reworking a store that was
+Settings field is what a person without that shell uses. Building both now costs
+one resolution function; adding the field later would mean reworking a store that was
 constructed once at launch.
 
 **Alternative considered.** A constant alone. Rejected because the design draws
@@ -386,6 +387,17 @@ a control that lies.
 
 **Trigger to re-open.** A second setec server, which turns the picker from a
 display of one value into a choice and moves the setting out of a single field.
+
+**Revisions.** 2026-09-21: the third source, a built-in constant holding the
+fleet's own server, was removed when the repository was published. A client that
+ships with one tailnet's host in it points every installation that is not that
+fleet's at a host its user cannot reach, and it states that host to anyone who
+reads the binary — `strings` is enough. What replaced it is a fourth loading
+state: with no server named, the list column reads "No server yet" and offers
+Settings, the sidebar footer reads "No server", and no request is made. The cost
+is one step on a fresh installation, including the operator's own: an installed
+app started from the Dock inherits no `SETEC_SERVER` (see the gotcha in
+[`CLAUDE.md`](CLAUDE.md)), so the field is filled once per Mac.
 
 ---
 
@@ -432,9 +444,9 @@ negation, and the useful half is the smaller one.
 
 **Decided:** 2026-09-16
 
-**Decision.** The client is `URLSession` against
-`https://setec.coydog-fence.ts.net`, with `Sec-X-Tailscale-No-Browsers: setec`
-on every call and no credential of any kind. No Tailscale library is linked.
+**Decision.** The client is a plain `URLSession` against whatever server is
+configured, with `Sec-X-Tailscale-No-Browsers: setec` on every call and no
+credential of any kind. No Tailscale library is linked.
 The tailnet identity shown in the toolbar is read separately, by running
 `tailscale status --json`.
 
@@ -442,7 +454,7 @@ The tailnet identity shown in the toolbar is read separately, by running
 address, so a request from a non-sandboxed app on a node that is signed in
 carries the same principal as a `setec` CLI call from the same Mac. Measured on
 2026-09-16: a Debug build listed the same 286 secrets that `setec list` returns
-on blackbook, MagicDNS resolved the name from inside the app bundle, and the
+on the same Mac, MagicDNS resolved the name from inside the app bundle, and the
 whole write path — put, activate, delete-version, delete — ran against
 `setec-ui-dev/smoke` and left the store as it found it. This is the assumption
 the rest of the design rests on, which is why it was the first thing built.
@@ -463,15 +475,15 @@ authenticates by something other than the peer identity.
 
 **Decision.** The grant matrix is populated from the tailnet policy file,
 fetched with `GET https://api.tailscale.com/api/v2/tailnet/-/acl`. The
-credential is the read-only OAuth client `homelab/ts-oauth-client-{id,secret}`,
-read from setec itself and exchanged for a bearer token. The matrix stays
+credential is a read-only OAuth client held in two setec entries, read from
+setec itself and exchanged for a bearer token. The matrix stays
 display-only: the app gates no action on a grant.
 
 **Reasoning.** setec exposes no policy-read endpoint, so the grants of other
 principals cannot come from the same server as the secrets. The tailnet policy
-is where they are actually defined. The OAuth client already exists for exactly
-this purpose and carries `policy_file:read` among its scopes; homelab
-`SECRETS.md` § *Tailscale control API* documents the exchange and notes that
+is where they are actually defined. Such a client carries `policy_file:read`
+among its scopes; homelab `SECRETS.md` § *Tailscale control API* names the
+fleet's own client, documents the exchange and notes that
 OAuth clients do not expire while API keys are capped at 90 days, which is what
 makes this the durable path.
 
@@ -486,7 +498,7 @@ OAuth client losing `policy_file:read`.
 **Revisions.** 2026-09-16: the two entry names moved from constants in
 `TailnetPolicyClient` into a setting (`AccessSetting`, Settings › Access
 matrix), and the defaults became the app's own `setec-ui/ts-client-{id,secret}`
-rather than the fleet's `homelab/ts-oauth-client-{id,secret}`. A name that
+rather than the fleet's own entry names. A name that
 belongs to one fleet does not belong in an app's source, and an app pointed at
 a different setec server has no reason to carry it; its own prefix is a name
 the app can state without assuming whose store it is talking to. Leaving either blank switches the matrix off — a store with no policy

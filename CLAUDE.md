@@ -12,9 +12,9 @@ server.
   is cleared from the pasteboard on a timer and the item is marked
   `org.nspasteboard.ConcealedType`. Values are fetched only on Reveal, Copy and
   Start from current — never to render a row.
-- **Development runs against the production store.** `SETEC_SERVER` is
-  `https://setec.coydog-fence.ts.net`, the operator's identity holds grants on
-  every prefix, and the app has no read-only mode. A `put`, `activate` or
+- **Development runs against the production store.** `SETEC_SERVER` in the
+  operator's profile names it, the operator's identity holds grants on every
+  prefix, and the app has no read-only mode. A `put`, `activate` or
   `delete` issued from a Debug build changes a real secret that real services
   read. Prefer a name under a throwaway prefix for anything exploratory.
 - **Namespaces are not objects.** `prod/db/password` is a flat string that only
@@ -27,11 +27,11 @@ server.
   capability, so the UI gates no action on a grant. The matrix exists because
   the grants of *other* principals are information only the policy has.
 - **The grants come from the Tailscale control API, not from setec** — setec has
-  no policy-read endpoint. The credential is the read-only OAuth client
-  `homelab/ts-oauth-client-{id,secret}`, read from setec and exchanged for a
-  bearer token; homelab `SECRETS.md` § *Tailscale control API* has the exchange
-  and records that the two entries whose names contain "api key" are node auth
-  keys that return 401 against this API.
+  no policy-read endpoint. The credential is a read-only OAuth client held in
+  two setec entries, named in Settings › Access matrix, read from setec and
+  exchanged for a bearer token. A Tailscale auth key is not a substitute: it
+  registers a node and answers 401 here. The fleet's own entry names and the
+  exchange are in homelab `SECRETS.md` § *Tailscale control API*.
 - **`confirm-token` is not part of the API.** The CLI calls it a request digest
   and says explicitly that it is not a security feature. The delete sheet's
   type-the-name confirmation replaces it; do not surface a token.
@@ -297,6 +297,11 @@ writing a view, `mac-app-verify` before claiming a task done.
   capsule, and with `.circle` set it draws no background at all. SwiftUI's
   `Menu` will not take the round shape under any combination: an icon-only
   menu button is a `Button` with an `NSMenu` — `App/Components/IconMenuButton.swift`.
+- **The app carries no built-in server.** `SETEC_SERVER` or the Settings field
+  names one; with neither, the list column reads "No server yet" and no request
+  is made (`SecretStore.Loading.unconfigured`). A client that shipped with one
+  tailnet's host in it would point every other installation at that host
+  ([`DECISIONS.md`](DECISIONS.md), 2026-09-21).
 - **`make run` hands the app the shell's `SETEC_SERVER`; a launch from the
   Dock does not.** The operator's profile exports it, so an app started from
   the terminal inherits it and the environment wins over the Settings field —
@@ -313,9 +318,9 @@ writing a view, `mac-app-verify` before claiming a task done.
   the deletion, and the loop reported "forgotten: 21, failed: 0" with two
   snapshots still present.
 - **A setec outage reads as a credential problem in everything that depends on
-  it.** setec is an LXC on `walter` (homelab `architecture/OVERVIEW.md`
-  § *Secrets and identity*), so a reboot of that node takes it down;
-  `git-credential-setec` then answers `could not read Username for
+  it.** setec runs on one host (homelab `architecture/OVERVIEW.md` § *Secrets
+  and identity*), so a reboot of that host takes it down; the git credential
+  helper that reads from setec then answers `could not read Username for
   https://git…`, which names the credential and not the cause. The access
   matrix keeps the two apart — `TailnetPolicyClient.Failure.unreachable` says
   setec is unreachable, `.credential` says the entry could not be read.

@@ -3,9 +3,9 @@ import XCTest
 
 final class SecretNameTests: XCTestCase {
     private let existing: Set<String> = [
-        "docker/immich/api-key",
-        "docker/immich/db-password",
-        "homelab/hetzner-api-token",
+        "apps/photos/api-key",
+        "apps/photos/db-password",
+        "infra/host-api-token",
     ]
 
     func testLeadingSlashesAreStrippedRatherThanRejected() {
@@ -16,9 +16,9 @@ final class SecretNameTests: XCTestCase {
         XCTAssertEqual(SecretName.verdict(for: "", existing: existing), .empty)
         XCTAssertEqual(SecretName.verdict(for: "Prod/DB", existing: existing), .invalid)
         XCTAssertEqual(SecretName.verdict(for: "prod/db-", existing: existing), .invalid)
-        XCTAssertEqual(SecretName.verdict(for: "docker/immich/api-key", existing: existing), .collision)
+        XCTAssertEqual(SecretName.verdict(for: "apps/photos/api-key", existing: existing), .collision)
         XCTAssertEqual(SecretName.verdict(for: "prod/db", existing: existing), .newGroup("prod"))
-        XCTAssertEqual(SecretName.verdict(for: "docker/new-thing", existing: existing), .available)
+        XCTAssertEqual(SecretName.verdict(for: "apps/new-thing", existing: existing), .available)
     }
 
     func testOnlyAcceptableVerdictsEnableTheButton() {
@@ -32,22 +32,22 @@ final class SecretNameTests: XCTestCase {
     func testPrefixesCarryOneEntryPerPathLevelWithCounts() {
         let candidates = SecretName.prefixes(in: existing)
         let counts = Dictionary(uniqueKeysWithValues: candidates.map { ($0.prefix, $0.count) })
-        XCTAssertEqual(counts["docker/"], 2)
-        XCTAssertEqual(counts["docker/immich/"], 2)
-        XCTAssertEqual(counts["homelab/"], 1)
-        XCTAssertNil(counts["docker/immich/api-key"], "a full name is not a prefix")
+        XCTAssertEqual(counts["apps/"], 2)
+        XCTAssertEqual(counts["apps/photos/"], 2)
+        XCTAssertEqual(counts["infra/"], 1)
+        XCTAssertNil(counts["apps/photos/api-key"], "a full name is not a prefix")
     }
 
     func testCompletionsContinueTheTypedTextAndNothingElse() {
         let candidates = SecretName.prefixes(in: existing)
         XCTAssertEqual(SecretName.completions(for: "", from: candidates), [])
-        XCTAssertEqual(SecretName.completions(for: "doc", from: candidates).first?.prefix, "docker/")
-        XCTAssertEqual(SecretName.completions(for: "docker/", from: candidates).first?.prefix, "docker/immich/")
+        XCTAssertEqual(SecretName.completions(for: "app", from: candidates).first?.prefix, "apps/")
+        XCTAssertEqual(SecretName.completions(for: "apps/", from: candidates).first?.prefix, "apps/photos/")
         XCTAssertTrue(SecretName.completions(for: "zzz", from: candidates).isEmpty)
     }
 
     func testGroupsAreTheTopLevelPrefixes() {
-        XCTAssertEqual(SecretName.groups(in: existing), ["docker", "homelab"])
+        XCTAssertEqual(SecretName.groups(in: existing), ["apps", "infra"])
     }
 
     func testGeneratedValueHasTheRequestedLengthAndNoLookAlikes() {

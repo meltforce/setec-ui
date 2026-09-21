@@ -24,7 +24,7 @@ struct Secret: Identifiable, Hashable, Sendable {
     }
 
     /// Everything up to and including the last slash, empty for an ungrouped
-    /// name. `docker/immich/api-key` → `docker/immich/`.
+    /// name. `apps/photos/api-key` → `apps/photos/`.
     var prefix: String {
         guard let slash = name.lastIndex(of: "/") else { return "" }
         return String(name[...slash])
