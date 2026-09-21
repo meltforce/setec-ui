@@ -80,6 +80,14 @@ rejected for as well — wrong authority, no hardened runtime, no secure
 timestamp — because each costs an upload and a wait to learn from the service,
 and a second to check against `codesign` locally.
 
+**The disk image is signed as well as the app.** A notarization ticket is not a
+signature, so stapling one onto an unsigned image leaves `spctl --assess --type
+open` with nothing to evaluate: measured on 2026-09-21, an accepted
+notarization and a successful staple still assessed as `rejected`,
+`source=no usable signature`. With the image signed, the same call reports the
+origin and, once the ticket is attached, `source=Notarized Developer ID` — which
+is what a person downloading the DMG actually meets.
+
 **Trigger to re-open.** An audience outside the fleet (then: cask, and
 in-app updates with the appcast as a release asset rather than a commit); a
 second signed artifact from this repo, for example a helper tool, which would

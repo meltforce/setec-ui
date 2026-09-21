@@ -150,6 +150,15 @@ create-dmg \
 rm -rf "$STAGE"
 [ -f "$DMG" ] || { echo "package: create-dmg reported success and wrote no file" >&2; exit 1; }
 
+# The disk image is signed before it is submitted. A notarization ticket is not
+# a signature: stapling one onto an unsigned image leaves `spctl --assess` with
+# nothing to evaluate, which it reports as `source=no usable signature` even
+# though the notarization succeeded (measured 2026-09-21 in the second run with
+# credentials). Signing it also makes the download itself attributable rather
+# than only the app inside it.
+codesign --force --sign "$IDENTITY" --timestamp "$DMG"
+codesign --verify --strict --verbose=2 "$DMG"
+
 if [ "$NOTARIZE" = false ]; then
   echo "package: $DMG (signed, not notarized)"
   exit 0
