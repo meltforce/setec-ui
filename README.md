@@ -16,6 +16,16 @@ The app talks to a setec server over the tailnet. Identity comes from the local
   <img alt="Setec UI: the namespace sidebar, the secret list, and a secret's value panel, version list and access matrix" src="docs/screenshot-light.png">
 </picture>
 
+## Download
+
+[**Latest release**](https://github.com/meltforce/setec-ui/releases/latest) —
+a signed and notarized DMG. Open it, drag **Setec UI** to Applications, and name
+a setec server in Settings on first launch. macOS 26.2 or newer, universal
+(Apple silicon and Intel).
+
+Building it yourself needs none of that: `make run` for a Debug build,
+`make dmg` for the same disk image the release carries.
+
 ## Layout
 
 | Path | Holds |
@@ -86,6 +96,10 @@ sign with the Developer ID of the team `project.yml` names, notarize, staple, pa
 DMG, publish the release page with the SHA-256. The tag is what sets the
 version for that build, so `project.yml` does not have to be bumped first — the
 value there is what a local build carries.
+
+Every release page carries the DMG as its asset, the checksum and the
+Gatekeeper assessment to compare it against; `releases/latest` always points at
+the newest one, which is what the Download section above links.
 
 The same DMG is built locally by `make dmg` (signed) and `make notarize`
 (signed, notarized and stapled — needs a notarytool keychain profile named

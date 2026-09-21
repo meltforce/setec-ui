@@ -139,8 +139,9 @@ jobs:
           ### Install
 
           Open \`Setec-UI-$VERSION.dmg\` and drag **Setec UI** to Applications.
-          The app and the disk image are signed with a Developer ID certificate
-          and notarized by Apple, so it opens without a Gatekeeper override.
+          The app and the disk image are signed by Linus Schmelzer under Apple
+          Developer ID team R43S29F4G5 and notarized by Apple, so it opens
+          without a Gatekeeper override.
 
           ### What it needs
 
@@ -156,9 +157,17 @@ jobs:
 
           ### Verify the download
 
+          The checksum says it is the file this pipeline built; the assessment
+          says what Gatekeeper will answer and who signed it.
+
           \`\`\`
           shasum -a 256 Setec-UI-$VERSION.dmg
-          $SHA256
+          # $SHA256
+
+          spctl --assess --type open --context context:primary-signature -vv Setec-UI-$VERSION.dmg
+          # accepted
+          # source=Notarized Developer ID
+          # origin=Developer ID Application: Linus Schmelzer (R43S29F4G5)
           \`\`\`
 
           [Commits in this release](https://github.com/meltforce/setec-ui/commits/$GITHUB_REF_NAME)
