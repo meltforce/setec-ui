@@ -130,17 +130,39 @@ jobs:
           gh release create "$GITHUB_REF_NAME" "$DMG" \
             --title "Setec UI $VERSION" \
             --notes "$(cat <<NOTES
-          Open the DMG and drag **Setec UI** to Applications. The app is signed
-          with the Developer ID of team R43S29F4G5 and notarized by Apple, so it
-          opens without a Gatekeeper override.
+          A native macOS client for [setec](https://github.com/tailscale/setec),
+          Tailscale's secrets service: find a secret, reveal and copy its value,
+          publish a new version, roll back by activating an older one, delete a
+          version or a whole secret, and see which tailnet principals hold which
+          grant.
 
-          It talks to a [setec](https://github.com/tailscale/setec) server over a
-          tailnet and takes its identity from the local \`tailscaled\`; set
-          \`SETEC_SERVER\` or the server field in Settings.
+          ### Install
 
-          **SHA-256** \`$SHA256\`
+          Open \`Setec-UI-$VERSION.dmg\` and drag **Setec UI** to Applications.
+          The app and the disk image are signed with the Developer ID of team
+          R43S29F4G5 and notarized by Apple, so it opens without a Gatekeeper
+          override.
 
-          [Commits](https://github.com/meltforce/setec-ui/commits/$GITHUB_REF_NAME)
+          ### What it needs
+
+          - macOS 26.2 or newer, Apple silicon or Intel — the app is universal.
+          - A setec server reachable over your tailnet. **The app ships with no
+            server built in**: name one in Settings (⌘,) or start it with
+            \`SETEC_SERVER\` set. Until then the list reads "No server yet".
+          - Tailscale signed in on the Mac. setec authorizes by the tailnet
+            identity of the connection, so there is no login screen and no token
+            to enter. The \`tailscale\` CLI is read once per launch for the name
+            the toolbar shows; without it the toolbar says "Identity unknown"
+            and nothing else changes.
+
+          ### Verify the download
+
+          \`\`\`
+          shasum -a 256 Setec-UI-$VERSION.dmg
+          $SHA256
+          \`\`\`
+
+          [Commits in this release](https://github.com/meltforce/setec-ui/commits/$GITHUB_REF_NAME)
           NOTES
           )"
 
