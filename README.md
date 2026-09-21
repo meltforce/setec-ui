@@ -82,7 +82,7 @@ git push origin v2026.09.21
 
 The tag reaches GitHub with the next mirror sync and starts
 `.github/workflows/release.yml` on a macOS runner: build both architectures,
-sign with the Developer ID of team R43S29F4G5, notarize, staple, package as a
+sign with the Developer ID of the team `project.yml` names, notarize, staple, package as a
 DMG, publish the release page with the SHA-256. The tag is what sets the
 version for that build, so `project.yml` does not have to be bumped first — the
 value there is what a local build carries.

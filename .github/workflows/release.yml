@@ -139,9 +139,8 @@ jobs:
           ### Install
 
           Open \`Setec-UI-$VERSION.dmg\` and drag **Setec UI** to Applications.
-          The app and the disk image are signed with the Developer ID of team
-          R43S29F4G5 and notarized by Apple, so it opens without a Gatekeeper
-          override.
+          The app and the disk image are signed with a Developer ID certificate
+          and notarized by Apple, so it opens without a Gatekeeper override.
 
           ### What it needs
 
