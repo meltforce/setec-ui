@@ -40,49 +40,6 @@ setec server named in Settings on first launch.
 Building it yourself needs neither: `make run` for a Debug build, `make dmg` for
 the same disk image the release carries.
 
-## Layout
-
-| Path | Holds |
-|---|---|
-| `design/` | The design handoff this app is built from: `handoff.md` is the specification, `api.md` the upstream API reference, `Setec Mac App.dc.html` plus `support.js` the interactive HTML prototype. A reference for look and behaviour, not code to port. |
-| `App/Design/` | The handoff's token list as Swift: palette (light and dark), type scale, button styles, section header, API preview panel. |
-| `App/Features/` | `SecretStore` with the list, the selection and everything derived from them; the name rules and the value generator; the access models. |
-| `App/Shell/` | The window: toolbar, sidebar, list, detail with its three sections, status bar. Each column opens with a shared 38-point header, so the three start on one line. |
-| `App/Sheets/` | New secret, New version, Delete secret, Delete version — all four in the same chrome. |
-| `Services/` | The setec client, the tailnet policy client, the tailnet identity, the pasteboard, the logger, `DebugServer` (DEBUG builds only). |
-| `Resources/` | `Info.plist` and `App.entitlements` are generated from `project.yml` by `make project` and are gitignored. |
-| `project.yml` | The project definition. `*.xcodeproj` is generated from it and never committed. |
-| `tools/` | `check-docs.sh`, which guards the document contract and the language rule. |
-| `docs/` | The two README screenshots, one per appearance. `<picture>` in the README picks by `prefers-color-scheme`. |
-| `scripts/` | `package.sh`, which builds the signed, notarized DMG. `make dmg`, `make notarize` and the release workflow all call it. |
-| `.github/workflows/` | `release.yml`, the only pipeline that runs on GitHub: a `v*` tag produces the DMG and the release page. |
-
-## What runs outside this checkout
-
-- A setec server on the tailnet, and the Tailscale control API at
-  `api.tailscale.com`. Neither is configured from here, and the app ships with
-  no server built in: `SETEC_SERVER` or the Settings field names one, and Settings › Access matrix names the two setec entries
-  holding the OAuth client the policy is read with — empty switches the matrix
-  off and changes nothing else.
-- The `tailscale` CLI, which the app runs once per launch to read the identity
-  it shows in the toolbar. Without it the toolbar says "Identity unknown" and
-  nothing else changes.
-- `make install` copies the Release build to `/Applications/Setec UI.app`.
-- The skills `mac-app-run`, `mac-app-verify` and `mac-ui-patterns` are symlinks
-  in `~/.claude/skills/` pointing into `meltforce.net/mac-app-template`, and
-  `~/bin/axdump` and `~/bin/winid` are built from its `tools/`. Both are
-  installed by `make install-tools install-skills` in that checkout, not here.
-- The build tools `xcodegen`, `swiftformat`, `swiftlint` and `xcbeautify` come
-  from the homelab `dev-tools` role. Xcode comes from the App Store.
-
-## Getting started
-
-```bash
-make run        # build Debug, launch, wait for the window
-make check      # lint, build, unit tests — run this after a change
-make verify     # check plus the UI tests — run this before make install
-```
-
 ## The access matrix and the two entries it reads
 
 The grant matrix in the detail column does not come from setec — setec has no
@@ -108,6 +65,52 @@ To create the client: Tailscale admin console › Settings › OAuth clients, on
 scope, `policy_file:read`, read access. Put the two halves into setec under the
 names above. A Tailscale **auth key** is not a substitute — it registers a node
 and answers 401 against this API.
+
+## Layout
+
+| Path | Holds |
+|---|---|
+| `design/` | The design handoff this app is built from: `handoff.md` is the specification, `api.md` the upstream API reference, `Setec Mac App.dc.html` plus `support.js` the interactive HTML prototype. A reference for look and behaviour, not code to port. |
+| `App/Design/` | The handoff's token list as Swift: palette (light and dark), type scale, button styles, section header, API preview panel. |
+| `App/Features/` | `SecretStore` with the list, the selection and everything derived from them; the name rules and the value generator; the access models. |
+| `App/Shell/` | The window: toolbar, sidebar, list, detail with its three sections, status bar. Each column opens with a shared 38-point header, so the three start on one line. |
+| `App/Sheets/` | New secret, New version, Delete secret, Delete version — all four in the same chrome. |
+| `Services/` | The setec client, the tailnet policy client, the tailnet identity, the pasteboard, the logger, `DebugServer` (DEBUG builds only). |
+| `Resources/` | `Info.plist` and `App.entitlements` are generated from `project.yml` by `make project` and are gitignored. |
+| `project.yml` | The project definition. `*.xcodeproj` is generated from it and never committed. |
+| `tools/` | `check-docs.sh`, which guards the document contract and the language rule. |
+| `docs/` | The two README screenshots, one per appearance. `<picture>` in the README picks by `prefers-color-scheme`. |
+| `scripts/` | `package.sh`, which builds the signed, notarized DMG. `make dmg`, `make notarize` and the release workflow all call it. |
+| `.github/workflows/` | `release.yml`, the only pipeline that runs on GitHub: a `v*` tag produces the DMG and the release page. |
+
+## What runs outside this checkout
+
+- **A setec server**, reached over the tailnet and named by `SETEC_SERVER` or
+  the Settings field. Nothing here configures one, and the app carries no
+  default.
+- **The Tailscale control API** at `api.tailscale.com`, for
+  [the access matrix](#the-access-matrix-and-the-two-entries-it-reads) alone.
+  Every other part of the app works without it.
+- **The `tailscale` CLI**, run once per launch for the identity shown in the
+  toolbar. Without it the toolbar says "Identity unknown" and nothing else
+  changes.
+- **Xcode**, and `xcodegen`, `swiftformat`, `swiftlint`, `create-dmg` and the
+  optional `xcbeautify`, all of which `make` calls by name:
+
+  ```bash
+  brew install xcodegen swiftformat swiftlint create-dmg xcbeautify
+  ```
+
+`make install` copies a Release build to `/Applications/Setec UI.app` — the
+path for someone who builds the app rather than downloading it.
+
+## Getting started
+
+```bash
+make run        # build Debug, launch, wait for the window
+make check      # lint, build, unit tests — run this after a change
+make verify     # check plus the UI tests — run this before make install
+```
 
 ## Releases
 
