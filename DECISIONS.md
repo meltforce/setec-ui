@@ -53,14 +53,35 @@ accepts three period-separated integers, which `YYYY.MM.DD` fills exactly —
 hence the same-day counter goes to `CFBundleVersion`, where a build number
 belongs anyway.
 
-**Not chosen: Sparkle in-app updates and a Homebrew cask.** Both are MBOMail's
-and both would work here, and neither is in this repo. Sparkle needs the
-appcast to be reachable at a stable URL, and the route MBOMail takes to that —
-committing `appcast.xml` to `main` from CI — is the one route the mirror
-forbids. A cask needs a second repository (`homebrew-setec-ui`) that is not a
-mirror of anything, which is a second publication channel to keep correct for
-an app whose audience is currently one fleet. The trigger to revisit both is
-the same: someone outside the fleet installing the app.
+**Not chosen: Sparkle in-app updates.** Sparkle needs the appcast to be
+reachable at a stable URL, and the route MBOMail takes to that — committing
+`appcast.xml` to `main` from CI — is the one route the mirror forbids. It is
+also the component the Homebrew path makes unnecessary for the audience this app
+has: `brew upgrade` replaces the bundle without the app knowing how to update
+itself. What Sparkle would add is the push — telling someone who never runs brew
+that a new version exists. The trigger to revisit is an audience that does not
+use Homebrew.
+
+**Chosen on 2026-09-21: a Homebrew cask, in a tap shared by every meltforce Mac
+app.** `brew tap meltforce/tap; brew install --cask setec-ui`. The release
+workflow rewrites `version` and `sha256` in `Casks/setec-ui.rb` through the
+GitHub API after publishing the release, reads the file back and fetches the URL
+the cask builds — a cask naming a version whose download does not exist is worse
+than no cask.
+
+*Why one tap rather than one per app:* MBOMail has `homebrew-mbomail`, which
+works and does not scale — the second app means a second repository and a second
+`brew tap` for the user. A shared tap makes the next app a file.
+
+*Why the tap is GitHub-canonical while everything else is a Forgejo mirror:* CI
+writes into it, and a commit that originates on a mirror target is removed by
+the next `git push --mirror` (homelab `STANDARDS.md` § *Git & repos*). The tap
+is therefore the deliberate exception, and it holds no source — a cask is a
+pointer to a release asset.
+
+*Why `auto_updates` stays absent from the cask:* Homebrew skips a cask that
+declares it unless `--greedy` is passed, on the assumption that the app updates
+itself. This one does not, so plain `brew upgrade` covers it.
 
 **Not chosen: archive and `xcodebuild -exportArchive`.** The app has no
 embedded frameworks and no entitlement that needs a provisioning profile, so a

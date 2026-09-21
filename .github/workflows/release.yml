@@ -138,7 +138,13 @@ jobs:
 
           ### Install
 
-          Open \`Setec-UI-$VERSION.dmg\` and drag **Setec UI** to Applications.
+          \`\`\`
+          brew tap meltforce/tap
+          brew install --cask setec-ui
+          \`\`\`
+
+          Or open \`Setec-UI-$VERSION.dmg\` below and drag **Setec UI** to
+          Applications.
           The app and the disk image are signed by Linus Schmelzer under Apple
           Developer ID team R43S29F4G5 and notarized by Apple, so it opens
           without a Gatekeeper override.
@@ -173,6 +179,50 @@ jobs:
           [Commits in this release](https://github.com/meltforce/setec-ui/commits/$GITHUB_REF_NAME)
           NOTES
           )"
+
+      # The tap is written by CI and is therefore GitHub-canonical, unlike this
+      # repository, which is a mirror. GITHUB_TOKEN cannot reach another
+      # repository, so the write uses a PAT.
+      - name: Update the Homebrew cask
+        if: startsWith(github.ref, 'refs/tags/v')
+        env:
+          GH_TOKEN: ${{ secrets.TAP_GITHUB_TOKEN }}
+          VERSION: ${{ steps.version.outputs.version }}
+          SHA256: ${{ steps.dmg.outputs.sha256 }}
+        run: |
+          set -euo pipefail
+          TAP=meltforce/homebrew-tap
+          CASK=Casks/setec-ui.rb
+
+          RESPONSE=$(gh api "repos/$TAP/contents/$CASK")
+          FILE_SHA=$(jq -r .sha <<<"$RESPONSE")
+          jq -r .content <<<"$RESPONSE" | base64 --decode > cask.rb
+
+          # Only these two lines move. The download URL is built from the
+          # version inside the cask, so it follows without being touched.
+          sed -i '' \
+            -e "s|^  version \".*\"|  version \"$VERSION\"|" \
+            -e "s|^  sha256 \".*\"|  sha256 \"$SHA256\"|" \
+            cask.rb
+          grep -E '^  (version|sha256) ' cask.rb
+
+          if ! git diff --no-index --quiet <(jq -r .content <<<"$RESPONSE" | base64 --decode) cask.rb; then
+            gh api "repos/$TAP/contents/$CASK" -X PUT \
+              -f message="setec-ui $VERSION" \
+              -f sha="$FILE_SHA" \
+              -f content="$(base64 -i cask.rb | tr -d '\n')" \
+              --jq '.commit.html_url'
+          else
+            echo "cask already names $VERSION with this checksum"
+          fi
+
+          # A cask that names a version whose download does not exist is worse
+          # than no cask, so the result is read back and the URL is fetched.
+          sleep 2
+          gh api "repos/$TAP/contents/$CASK" --jq .content | base64 --decode | grep -q "version \"$VERSION\"" \
+            || { echo "::error::the cask does not name $VERSION after the write"; exit 1; }
+          curl -sSfLI -o /dev/null "https://github.com/meltforce/setec-ui/releases/download/$GITHUB_REF_NAME/Setec-UI-$VERSION.dmg" \
+            && echo "the URL the cask builds resolves"
 
       - name: Summary
         run: |

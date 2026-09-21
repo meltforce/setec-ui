@@ -16,15 +16,25 @@ The app talks to a setec server over the tailnet. Identity comes from the local
   <img alt="Setec UI: the namespace sidebar, the secret list, and a secret's value panel, version list and access matrix" src="docs/screenshot-light.png">
 </picture>
 
-## Download
+## Install
 
-[**Latest release**](https://github.com/meltforce/setec-ui/releases/latest) —
-a signed and notarized DMG. Open it, drag **Setec UI** to Applications, and name
-a setec server in Settings on first launch. macOS 26.2 or newer, universal
-(Apple silicon and Intel).
+```bash
+brew tap meltforce/tap
+brew install --cask setec-ui
+```
 
-Building it yourself needs none of that: `make run` for a Debug build,
-`make dmg` for the same disk image the release carries.
+That is the path to prefer: `brew upgrade` then keeps the app current, and it
+needs no flags — the app carries no self-updater, so Homebrew does not skip it
+the way it skips a cask that declares `auto_updates true`. The cask is bumped by
+the release workflow, so it names a version as soon as that version exists.
+
+The alternative is the [latest release](https://github.com/meltforce/setec-ui/releases/latest):
+a signed and notarized DMG to open and drag to Applications. Either way the app
+needs macOS 26.2 or newer — it is universal, Apple silicon and Intel — and a
+setec server named in Settings on first launch.
+
+Building it yourself needs neither: `make run` for a Debug build, `make dmg` for
+the same disk image the release carries.
 
 ## Layout
 
@@ -68,6 +78,32 @@ make run        # build Debug, launch, wait for the window
 make check      # lint, build, unit tests — run this after a change
 make verify     # check plus the UI tests — run this before make install
 ```
+
+## The access matrix and the two entries it reads
+
+The grant matrix in the detail column does not come from setec — setec has no
+endpoint that returns policy — but from the Tailscale control API, which needs
+a credential of its own: a **read-only OAuth client** carrying the
+`policy_file:read` scope and nothing else.
+
+That credential lives in the same setec store the app is pointed at, under two
+entries the app reads by name:
+
+| Entry | Holds |
+|---|---|
+| `setec-ui/ts-client-id` | The OAuth client ID |
+| `setec-ui/ts-client-secret` | The OAuth client secret |
+
+Both names are settings (Settings › Access matrix), so a store that keeps them
+elsewhere is a change of two fields rather than a fork. **Leaving either field
+empty switches the matrix off** and changes nothing else: the list, the
+versions and every action keep working, and the section says "switched off"
+rather than reporting an error.
+
+To create the client: Tailscale admin console › Settings › OAuth clients, one
+scope, `policy_file:read`, read access. Put the two halves into setec under the
+names above. A Tailscale **auth key** is not a substitute — it registers a node
+and answers 401 against this API.
 
 ## Releases
 
