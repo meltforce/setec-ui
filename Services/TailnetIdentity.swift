@@ -10,12 +10,12 @@ import Foundation
 /// token out of `/Library/Tailscale`, which is a credential read for a display
 /// string. The CLI is the documented interface and needs no token.
 struct TailnetIdentity: Sendable, Hashable {
-    /// The login name of the user the node is signed in as, `linus@example.com`.
+    /// The login name of the user the node is signed in as, `you@example.com`.
     var loginName: String
     /// The node's MagicDNS name without the trailing dot, `mac.example.ts.net`.
     var nodeName: String
 
-    /// The short form the toolbar shows: `linus@example`.
+    /// The short form the toolbar shows: `you@example`.
     var shortLogin: String {
         guard let at = loginName.firstIndex(of: "@") else { return loginName }
         let domain = loginName[loginName.index(after: at)...]
