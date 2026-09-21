@@ -23,6 +23,8 @@ the local `tailscaled`, so there is no login screen and no token to enter.
 | `Resources/` | `Info.plist` and `App.entitlements` are generated from `project.yml` by `make project` and are gitignored. |
 | `project.yml` | The project definition. `*.xcodeproj` is generated from it and never committed. |
 | `tools/` | `check-docs.sh`, which guards the document contract and the language rule. |
+| `scripts/` | `package.sh`, which builds the signed, notarized DMG. `make dmg`, `make notarize` and the release workflow all call it. |
+| `.github/workflows/` | `release.yml`, the only pipeline that runs on GitHub: a `v*` tag produces the DMG and the release page. |
 
 ## What runs outside this checkout
 
@@ -50,6 +52,41 @@ make run        # build Debug, launch, wait for the window
 make check      # lint, build, unit tests — run this after a change
 make verify     # check plus the UI tests — run this before make install
 ```
+
+## Releases
+
+`git.coydog-fence.ts.net/meltforce.net/setec-ui` is canonical;
+`github.com/meltforce/setec-ui` is a push mirror and carries the downloads.
+Nothing originates on the mirror — a branch, tag or commit that exists only on
+GitHub is removed by the next `git push --mirror` (homelab `STANDARDS.md`
+§ *Git & repos*).
+
+**Versions are dates**, `YYYY.MM.DD`, tagged with a leading `v`. A second
+release on the same day adds a fourth component, `2026.09.21.2`: the app keeps
+`2026.09.21` as its version — `CFBundleShortVersionString` takes three
+integers and no more — and carries the counter as its build number.
+
+A release is a tag pushed to Forgejo:
+
+```bash
+git tag -a v2026.09.21 -m "Setec UI 2026.09.21"
+git push origin v2026.09.21
+```
+
+The tag reaches GitHub with the next mirror sync and starts
+`.github/workflows/release.yml` on a macOS runner: build both architectures,
+sign with the Developer ID of team R43S29F4G5, notarize, staple, package as a
+DMG, publish the release page with the SHA-256. The tag is what sets the
+version for that build, so `project.yml` does not have to be bumped first — the
+value there is what a local build carries.
+
+The same DMG is built locally by `make dmg` (signed) and `make notarize`
+(signed, notarized and stapled — needs a notarytool keychain profile named
+`notary`). Both run `scripts/package.sh`, which is what the workflow runs.
+
+To exercise the pipeline without publishing anything, dispatch the workflow by
+hand: it builds and signs, leaves the DMG as a run artifact and creates no
+release.
 
 ## Documents
 

@@ -14,6 +14,71 @@ place with the old form recorded under revisions — the entry is not duplicated
 
 ---
 
+## 2026-09-21 — the app is published from a GitHub mirror, and versions are dates
+
+**Decided:** 2026-09-21
+
+**Decision.** `meltforce.net/setec-ui` on Forgejo stays canonical and
+`github.com/meltforce/setec-ui` becomes a push mirror, which is where the
+downloads live. One workflow runs on GitHub, `.github/workflows/release.yml`:
+a `v*` tag builds a universal Release build, signs it with the Developer ID of
+team R43S29F4G5, notarizes and staples it, packages a DMG and publishes a
+release page with the SHA-256. The workflow and `make dmg` / `make notarize`
+both call `scripts/package.sh`, so there is one set of steps rather than two.
+
+**Versions are dates**, `YYYY.MM.DD`, with a fourth component for a second
+release on the same day that becomes the build number rather than part of the
+version string.
+
+**Reasoning.** The mirror shape is the fleet's (homelab `STANDARDS.md` § *Git
+& repos*) and is not re-argued here. What this repo adds is the one case that
+shape does not cover: the release artifact is a signed macOS app, no runner in
+the fleet is a Mac, and a seat Mac is a workstation rather than a build host.
+GitHub's macOS runners are the only build host available, so the release
+pipeline is the single thing that runs there — the precedent is
+`github.com/meltforce/MBOMail`, whose release workflow this one is derived
+from.
+
+Two properties of the mirror decide the shape of the workflow. It is
+`git push --mirror`, force and prune, so anything the workflow committed back
+to the repository would be removed at the next sync — MBOMail's workflow
+commits its appcast and its website to `main`, and that step cannot come along.
+GitHub Releases are not git refs and survive. And the workflow file itself is
+edited on Forgejo, never on GitHub.
+
+Versions are dates because this app has no external API and no compatibility
+contract to express: a consumer of a release wants to know how old it is, which
+is the one question a semantic version does not answer. `CFBundleShortVersionString`
+accepts three period-separated integers, which `YYYY.MM.DD` fills exactly —
+hence the same-day counter goes to `CFBundleVersion`, where a build number
+belongs anyway.
+
+**Not chosen: Sparkle in-app updates and a Homebrew cask.** Both are MBOMail's
+and both would work here, and neither is in this repo. Sparkle needs the
+appcast to be reachable at a stable URL, and the route MBOMail takes to that —
+committing `appcast.xml` to `main` from CI — is the one route the mirror
+forbids. A cask needs a second repository (`homebrew-setec-ui`) that is not a
+mirror of anything, which is a second publication channel to keep correct for
+an app whose audience is currently one fleet. The trigger to revisit both is
+the same: someone outside the fleet installing the app.
+
+**Not chosen: archive and `xcodebuild -exportArchive`.** The app has no
+embedded frameworks and no entitlement that needs a provisioning profile, so a
+Release build product is already the shippable bundle; signing it during the
+build with `CODE_SIGN_STYLE=Manual` is fewer moving parts than an archive, an
+`ExportOptions.plist` and an export step that re-signs. The properties the
+notary service rejects a submission for — wrong authority, no hardened runtime,
+no secure timestamp — are asserted against `codesign -dvvv` before the DMG is
+built, which costs a second instead of a round trip.
+
+**Trigger to re-open.** An audience outside the fleet (then: cask, and
+in-app updates with the appcast as a release asset rather than a commit); a
+second signed artifact from this repo, for example a helper tool, which would
+make the single-product assumptions in `scripts/package.sh` wrong; Apple
+retiring the Developer ID certificate that team R43S29F4G5 holds.
+
+---
+
 ## 2026-09-16 — reuse detection is a report, not a smart filter
 
 **Decided:** 2026-09-16

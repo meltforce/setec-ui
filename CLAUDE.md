@@ -56,6 +56,8 @@ side reports it:
 | Bundle identifier, signing team, `make install` target, where the build tools come from | homelab `configuration/macs/README.md` § *Self-built Mac apps* |
 | The setec server, the prefix grants, what each prefix means | homelab `SECRETS.md` § *setec* |
 | Reading the Tailscale control API, and which credential does it | homelab `SECRETS.md` § *Tailscale control API* |
+| Where a published repo is mirrored, and that nothing may originate on GitHub | homelab `STANDARDS.md` § *Git & repos* |
+| The Developer ID certificate and the notarization credentials | homelab `SECRETS.md` § *Apple code signing* |
 ## Repo documents
 
 These documents carry state over time. The axis is where a thing *is*, not what
@@ -321,6 +323,18 @@ writing a view, `mac-app-verify` before claiming a task done.
   Rollover behaviour cannot be shown with `screencapture` from here; assert it
   in a UI test, where `XCUIElement.hover()` works, and assert the geometry
   (`frame.midY`, `frame.height`) rather than trying to photograph it.
+- **A release is a tag on Forgejo, and the DMG is built on GitHub.** The fleet
+  has no macOS runner, so `.github/workflows/release.yml` is the one pipeline
+  that runs outside the tailnet. It is edited here and arrives on the mirror
+  with the next sync; a commit made on GitHub is removed by the next
+  `git push --mirror`, which is why nothing in that workflow writes back to the
+  repository. `README.md` § *Releases* has the tag form.
+- **A version is a date and has three components at most.**
+  `CFBundleShortVersionString` takes three period-separated integers, so
+  `YYYY.MM.DD` fills it exactly and a second release on the same day carries
+  its counter as the build number (`scripts/package.sh`). A four-component
+  version string in the bundle is what `altool` and the App Store reject; the
+  notary service accepts it, so nothing here would report it.
 - **A `confirmationDialog` is an `_NSAlertPanel`, which the agent cannot
   drive.** Its buttons report `missing value` for their name, `osascript` does
   not reach them and a synthesized Return does not either. A destructive

@@ -23,7 +23,10 @@ settings:
     CODE_SIGN_STYLE: Automatic
     CODE_SIGN_IDENTITY: "Apple Development"
     ENABLE_HARDENED_RUNTIME: YES
-    MARKETING_VERSION: "0.1.0"
+    # Versions are dates: YYYY.MM.DD (README § Releases). A release tag
+    # overrides this value for that build, so it is what a local build and a
+    # `make dmg` without VERSION carry, not the last released version.
+    MARKETING_VERSION: "2026.09.21"
     CURRENT_PROJECT_VERSION: "1"
     SWIFT_STRICT_CONCURRENCY: complete
 

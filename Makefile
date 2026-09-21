@@ -20,7 +20,7 @@ XCB         := $(shell command -v xcbeautify 2>/dev/null)
 PIPE        := $(if $(XCB),| $(XCB) --quiet,)
 XCODEBUILD  := xcodebuild -project "$(PROJECT)" -scheme "$(SCHEME)" -configuration "$(CONFIG)" -derivedDataPath "$(DERIVED)" -destination 'platform=macOS,arch=arm64'
 
-.PHONY: project build run stop check verify test test-unit format lint screenshot screenshot-native screenshot-self inspect click type key at eval logs install notarize clean help
+.PHONY: project build run stop check verify test test-unit format lint screenshot screenshot-native screenshot-self inspect click type key at eval logs install dmg notarize clean help
 
 help:
 	@grep -E '^[a-z-]+:.*## ' $(MAKEFILE_LIST) | sed 's/:.*## /\t/' | column -t -s $$'\t'
@@ -144,21 +144,18 @@ install: verify ## Full verify, then a Release build into /Applications
 	ditto "$(DERIVED)/Build/Products/Release/$(APP_NAME).app" "/Applications/$(APP_NAME).app"
 	@echo "installed /Applications/$(APP_NAME).app"
 
-# Notarization signs with the Developer ID Application certificate of the same
-# team the app is built with (project.yml: DEVELOPMENT_TEAM) and needs a
-# notarytool keychain profile named `notary` (xcrun notarytool store-credentials).
-notarize: ## Sign with Developer ID, notarize, staple, build a DMG
-	@security find-identity -v -p codesigning | grep -q "Developer ID Application: .*(R43S29F4G5)" || { \
-	  echo "notarize: no 'Developer ID Application' certificate for team R43S29F4G5 in the keychain" >&2; exit 1; }
-	$(MAKE) build CONFIG=Release
-	codesign --force --deep --options runtime --timestamp \
-	  --sign "Developer ID Application" "$(DERIVED)/Build/Products/Release/$(APP_NAME).app"
-	rm -f "$(DERIVED)/$(APP_NAME).dmg"
-	create-dmg --volname "$(APP_NAME)" --window-size 480 300 --icon-size 96 \
-	  --app-drop-link 360 140 "$(DERIVED)/$(APP_NAME).dmg" "$(DERIVED)/Build/Products/Release/$(APP_NAME).app"
-	xcrun notarytool submit "$(DERIVED)/$(APP_NAME).dmg" --keychain-profile notary --wait
-	xcrun stapler staple "$(DERIVED)/$(APP_NAME).dmg"
-	@echo "notarized: $(DERIVED)/$(APP_NAME).dmg"
+# Both targets delegate to scripts/package.sh, which the release workflow runs
+# too: a DMG built here and a DMG built from a release tag go through the same
+# steps. Signing uses the Developer ID Application certificate of the team the
+# app is built with (project.yml: DEVELOPMENT_TEAM); notarizing needs either a
+# notarytool keychain profile named `notary` (xcrun notarytool
+# store-credentials) or the APPSTORE_CONNECT_* variables the workflow passes.
+# VERSION overrides project.yml's MARKETING_VERSION for the build.
+dmg: ## Signed universal DMG into .build, not notarized
+	scripts/package.sh $(if $(VERSION),--version $(VERSION))
+
+notarize: ## Signed universal DMG, notarized and stapled
+	scripts/package.sh $(if $(VERSION),--version $(VERSION)) --notarize
 
 clean: stop ## Remove build products and the generated project
 	rm -rf "$(DERIVED)" "$(PROJECT)" $(AGENT_DIR)
