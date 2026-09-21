@@ -328,6 +328,11 @@ writing a view, `mac-app-verify` before claiming a task done.
   Rollover behaviour cannot be shown with `screencapture` from here; assert it
   in a UI test, where `XCUIElement.hover()` works, and assert the geometry
   (`frame.midY`, `frame.height`) rather than trying to photograph it.
+- **A notarization ticket covers one artifact, not what is inside it.** The
+  app is submitted and stapled first, then the image is built from the stapled
+  bundle and submitted in turn. An app whose bundle carries no ticket is
+  validated over the network at first launch, which is a failure to start on a
+  Mac that is offline — and invisible on one that is not.
 - **A Release build carries `get-task-allow` unless told otherwise.** An
   `xcodebuild build` injects the debug entitlement in every configuration, and
   the notary service rejects the submission for it minutes after the upload.

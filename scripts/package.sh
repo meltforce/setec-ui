@@ -134,32 +134,38 @@ if codesign -d --entitlements - --xml "$APP" 2>/dev/null | grep -q 'get-task-all
 fi
 echo "package: architectures $(lipo -archs "$APP/Contents/MacOS/$APP_NAME")"
 
-echo "package: building $DMG"
-STAGE="$DERIVED/dmg"
-rm -rf "$STAGE" "$DMG"
-mkdir -p "$STAGE"
-cp -R "$APP" "$STAGE/$APP_NAME.app"
-create-dmg \
-  --volname "$APP_NAME" \
-  --window-pos 200 120 --window-size 600 400 --icon-size 100 \
-  --icon "$APP_NAME.app" 150 200 \
-  --app-drop-link 450 200 \
-  --hide-extension "$APP_NAME.app" \
-  --no-internet-enable \
-  "$DMG" "$STAGE"
-rm -rf "$STAGE"
-[ -f "$DMG" ] || { echo "package: create-dmg reported success and wrote no file" >&2; exit 1; }
+# A function, because the image is built after the app has its ticket: the app
+# inside it is copied as it is, so stapling it afterwards would not reach the
+# copy in the image.
+build_dmg() {
+  echo "package: building $DMG"
+  local stage="$DERIVED/dmg"
+  rm -rf "$stage" "$DMG"
+  mkdir -p "$stage"
+  cp -R "$APP" "$stage/$APP_NAME.app"
+  create-dmg \
+    --volname "$APP_NAME" \
+    --window-pos 200 120 --window-size 600 400 --icon-size 100 \
+    --icon "$APP_NAME.app" 150 200 \
+    --app-drop-link 450 200 \
+    --hide-extension "$APP_NAME.app" \
+    --no-internet-enable \
+    "$DMG" "$stage"
+  rm -rf "$stage"
+  [ -f "$DMG" ] || { echo "package: create-dmg reported success and wrote no file" >&2; exit 1; }
 
-# The disk image is signed before it is submitted. A notarization ticket is not
-# a signature: stapling one onto an unsigned image leaves `spctl --assess` with
-# nothing to evaluate, which it reports as `source=no usable signature` even
-# though the notarization succeeded (measured 2026-09-21 in the second run with
-# credentials). Signing it also makes the download itself attributable rather
-# than only the app inside it.
-codesign --force --sign "$IDENTITY" --timestamp "$DMG"
-codesign --verify --strict --verbose=2 "$DMG"
+  # The disk image is signed before it is submitted. A notarization ticket is not
+  # a signature: stapling one onto an unsigned image leaves `spctl --assess` with
+  # nothing to evaluate, which it reports as `source=no usable signature` even
+  # though the notarization succeeded (measured 2026-09-21 in the second run with
+  # credentials). Signing it also makes the download itself attributable rather
+  # than only the app inside it.
+  codesign --force --sign "$IDENTITY" --timestamp "$DMG"
+  codesign --verify --strict --verbose=2 "$DMG"
+}
 
 if [ "$NOTARIZE" = false ]; then
+  build_dmg
   echo "package: $DMG (signed, not notarized)"
   exit 0
 fi
@@ -199,20 +205,45 @@ else
   NOTARY_ARGS=(--keychain-profile "${NOTARY_PROFILE:-notary}")
 fi
 
-echo "package: submitting $(basename "$DMG") to the notary service"
-SUBMISSION=$(xcrun notarytool submit "$DMG" "${NOTARY_ARGS[@]}" --output-format json --wait)
-echo "$SUBMISSION"
-STATUS=$(python3 -c 'import sys,json; print(json.load(sys.stdin).get("status",""))' <<<"$SUBMISSION")
-if [ "$STATUS" != "Accepted" ]; then
-  ID=$(python3 -c 'import sys,json; print(json.load(sys.stdin).get("id",""))' <<<"$SUBMISSION")
-  [ -n "$ID" ] && xcrun notarytool log "$ID" "${NOTARY_ARGS[@]}" || true
-  echo "package: notarization ended as $STATUS" >&2
-  exit 1
-fi
+# submit <path> — submit, wait, and print the service's log on anything but
+# Accepted. Both artifacts go through here.
+submit() {
+  local what="$1" out status id
+  echo "package: submitting $(basename "$what") to the notary service"
+  out=$(xcrun notarytool submit "$what" "${NOTARY_ARGS[@]}" --output-format json --wait)
+  echo "$out"
+  status=$(python3 -c 'import sys,json; print(json.load(sys.stdin).get("status",""))' <<<"$out")
+  if [ "$status" != "Accepted" ]; then
+    id=$(python3 -c 'import sys,json; print(json.load(sys.stdin).get("id",""))' <<<"$out")
+    [ -n "$id" ] && xcrun notarytool log "$id" "${NOTARY_ARGS[@]}" || true
+    echo "package: notarization of $(basename "$what") ended as $status" >&2
+    exit 1
+  fi
+}
 
+# Two submissions, because a ticket covers the bytes it was issued for and
+# nothing else. The app is first: what a person drags out of the image is the
+# bundle, and a bundle without its own ticket is validated by asking Apple over
+# the network at first launch — invisible with a connection, a failure to start
+# without one. notarytool does not take a bundle directly, so it travels as a
+# zip that is thrown away again.
+ZIP="$DERIVED/$APP_NAME.zip"
+rm -f "$ZIP"
+ditto -c -k --keepParent "$APP" "$ZIP"
+submit "$ZIP"
+rm -f "$ZIP"
+xcrun stapler staple "$APP"
+xcrun stapler validate "$APP"
+# Stapling writes into the bundle, so the seal is checked once more afterwards.
+codesign --verify --strict --verbose=2 "$APP"
+
+# The image is built from the stapled app and submitted in turn: its own bytes
+# carry no ticket from the app's submission.
+build_dmg
+submit "$DMG"
 xcrun stapler staple "$DMG"
 xcrun stapler validate "$DMG"
 # What Gatekeeper answers for a downloaded disk image, which is the question the
 # operator opening the DMG is actually asking.
 spctl --assess --type open --context context:primary-signature -vv "$DMG"
-echo "package: $DMG (notarized and stapled)"
+echo "package: $DMG (app and image notarized and stapled)"

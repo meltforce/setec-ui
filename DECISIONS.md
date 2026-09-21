@@ -80,6 +80,15 @@ rejected for as well — wrong authority, no hardened runtime, no secure
 timestamp — because each costs an upload and a wait to learn from the service,
 and a second to check against `codesign` locally.
 
+**Both the app and the image are notarized, in that order.** A ticket covers
+the bytes it was issued for, so the app's ticket does not come from the image's
+submission: `scripts/package.sh` submits the app as a zip, staples it, and only
+then builds the image from the stapled bundle, submits that and staples it too.
+Without the first round the copy a person drags into Applications carries no
+ticket, and its first launch is a network lookup at Apple — invisible with a
+connection, a failure to start without one. The price is a second submission,
+measured at 20 seconds on 2026-09-21 against a total of 82 for the whole script.
+
 **The disk image is signed as well as the app.** A notarization ticket is not a
 signature, so stapling one onto an unsigned image leaves `spctl --assess --type
 open` with nothing to evaluate: measured on 2026-09-21, an accepted
