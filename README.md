@@ -7,8 +7,14 @@ copy its value, publish a new version, roll back by activating an older one,
 delete a version or a whole secret, and see which tailnet principals hold which
 grant.
 
-The app talks to the homelab setec server over the tailnet. Identity comes from
-the local `tailscaled`, so there is no login screen and no token to enter.
+The app talks to a setec server over the tailnet. Identity comes from the local
+`tailscaled`, so there is no login screen and no token to enter.
+
+<picture>
+  <source media="(prefers-color-scheme: dark)" srcset="docs/screenshot-dark.png">
+  <source media="(prefers-color-scheme: light)" srcset="docs/screenshot-light.png">
+  <img alt="Setec UI: the namespace sidebar, the secret list, and a secret's value panel, version list and access matrix" src="docs/screenshot-light.png">
+</picture>
 
 ## Layout
 
@@ -23,6 +29,7 @@ the local `tailscaled`, so there is no login screen and no token to enter.
 | `Resources/` | `Info.plist` and `App.entitlements` are generated from `project.yml` by `make project` and are gitignored. |
 | `project.yml` | The project definition. `*.xcodeproj` is generated from it and never committed. |
 | `tools/` | `check-docs.sh`, which guards the document contract and the language rule. |
+| `docs/` | The two README screenshots, one per appearance. `<picture>` in the README picks by `prefers-color-scheme`. |
 | `scripts/` | `package.sh`, which builds the signed, notarized DMG. `make dmg`, `make notarize` and the release workflow all call it. |
 | `.github/workflows/` | `release.yml`, the only pipeline that runs on GitHub: a `v*` tag produces the DMG and the release page. |
 
