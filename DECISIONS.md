@@ -66,10 +66,19 @@ the same: someone outside the fleet installing the app.
 embedded frameworks and no entitlement that needs a provisioning profile, so a
 Release build product is already the shippable bundle; signing it during the
 build with `CODE_SIGN_STYLE=Manual` is fewer moving parts than an archive, an
-`ExportOptions.plist` and an export step that re-signs. The properties the
-notary service rejects a submission for — wrong authority, no hardened runtime,
-no secure timestamp — are asserted against `codesign -dvvv` before the DMG is
-built, which costs a second instead of a round trip.
+`ExportOptions.plist` and an export step that re-signs.
+
+**What that costs, and what pays for it.** An archive strips
+`com.apple.security.get-task-allow`; a `build` injects it so a debugger can
+attach, for the Release configuration as well, and the notary service refuses
+the submission for it — `status: Invalid`, "Archive contains critical
+validation errors", once per architecture. Measured on 2026-09-21 in the first
+run with credentials. `CODE_SIGN_INJECT_BASE_ENTITLEMENTS=NO` is what an
+archive does here, and `scripts/package.sh` asserts the result rather than
+trusting the setting. It asserts the other three properties a submission is
+rejected for as well — wrong authority, no hardened runtime, no secure
+timestamp — because each costs an upload and a wait to learn from the service,
+and a second to check against `codesign` locally.
 
 **Trigger to re-open.** An audience outside the fleet (then: cask, and
 in-app updates with the appcast as a release asset rather than a commit); a

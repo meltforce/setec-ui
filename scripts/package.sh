@@ -93,6 +93,7 @@ BUILD_CMD=(xcodebuild -project "$PROJECT" -scheme "$SCHEME" -configuration Relea
   MARKETING_VERSION="$SHORT_VERSION" CURRENT_PROJECT_VERSION="$BUILD_NUMBER"
   CODE_SIGN_STYLE=Manual CODE_SIGN_IDENTITY="$IDENTITY"
   DEVELOPMENT_TEAM="$TEAM_ID" OTHER_CODE_SIGN_FLAGS="--timestamp"
+  CODE_SIGN_INJECT_BASE_ENTITLEMENTS=NO
   build)
 if command -v xcbeautify >/dev/null 2>&1; then
   "${BUILD_CMD[@]}" | xcbeautify --quiet
@@ -118,6 +119,19 @@ grep -q 'Timestamp=' <<<"$SIGN_INFO" || {
   exit 1
 }
 codesign --verify --strict --verbose=2 "$APP"
+
+# The fourth property, and the one that is invisible in `codesign -dvvv`: a
+# `xcodebuild build` injects com.apple.security.get-task-allow so a debugger can
+# attach, and keeps doing so for a Release configuration. The notary service
+# rejects the submission for it with "Archive contains critical validation
+# errors" after the upload, which is minutes per attempt — hence the check here
+# rather than there. CODE_SIGN_INJECT_BASE_ENTITLEMENTS=NO above is what stops
+# the injection; this asserts that it worked.
+if codesign -d --entitlements - --xml "$APP" 2>/dev/null | grep -q 'get-task-allow'; then
+  echo "package: the signed app carries com.apple.security.get-task-allow, which the notary service refuses" >&2
+  codesign -d --entitlements - "$APP" >&2 || true
+  exit 1
+fi
 echo "package: architectures $(lipo -archs "$APP/Contents/MacOS/$APP_NAME")"
 
 echo "package: building $DMG"

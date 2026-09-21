@@ -328,6 +328,12 @@ writing a view, `mac-app-verify` before claiming a task done.
   Rollover behaviour cannot be shown with `screencapture` from here; assert it
   in a UI test, where `XCUIElement.hover()` works, and assert the geometry
   (`frame.midY`, `frame.height`) rather than trying to photograph it.
+- **A Release build carries `get-task-allow` unless told otherwise.** An
+  `xcodebuild build` injects the debug entitlement in every configuration, and
+  the notary service rejects the submission for it minutes after the upload.
+  `scripts/package.sh` passes `CODE_SIGN_INJECT_BASE_ENTITLEMENTS=NO` and then
+  checks `codesign -d --entitlements` for it — the setting alone is not the
+  evidence.
 - **A release is a tag on Forgejo, and the DMG is built on GitHub.** The fleet
   has no macOS runner, so `.github/workflows/release.yml` is the one pipeline
   that runs outside the tailnet. It is edited here and arrives on the mirror
