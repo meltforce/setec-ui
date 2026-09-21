@@ -142,8 +142,12 @@ jobs:
 
           \`\`\`
           brew tap meltforce/tap
+          brew trust meltforce/tap
           brew install --cask setec-ui
           \`\`\`
+
+          The middle line is not optional — Homebrew refuses to load a cask from
+          a third-party tap until the tap is trusted.
 
           Or open \`Setec-UI-$VERSION.dmg\` below and drag **Setec UI** to
           Applications.

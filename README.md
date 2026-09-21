@@ -20,8 +20,12 @@ The app talks to a setec server over the tailnet. Identity comes from the local
 
 ```bash
 brew tap meltforce/tap
+brew trust meltforce/tap
 brew install --cask setec-ui
 ```
+
+The middle line is not optional: Homebrew refuses to load a cask from a
+third-party tap until the tap is trusted, and says so on `brew info` already.
 
 That is the path to prefer: `brew upgrade` then keeps the app current, and it
 needs no flags — the app carries no self-updater, so Homebrew does not skip it
