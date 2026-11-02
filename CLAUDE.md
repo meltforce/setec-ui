@@ -1,7 +1,8 @@
 # setec-ui — a native macOS client for the homelab setec server
 
 A SwiftUI app that manages secrets in [setec](https://github.com/tailscale/setec)
-over the tailnet: list, reveal, copy, publish a version, activate, delete. It is
+over the tailnet: list, reveal, copy, publish a version, activate, delete, copy
+or move to another name. It is
 a client and nothing else — it stores no secret, holds no policy, and runs no
 server.
 

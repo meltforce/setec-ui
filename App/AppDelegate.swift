@@ -62,6 +62,19 @@ final class AppDelegate: NSObject, NSApplicationDelegate {
             }
             return ["appearance": name]
         }
+        // The submit of the copy and move sheets, without the sheet: the agent
+        // has no Accessibility grant in every host, and the write path still
+        // has to be exercised against a real server once. Handlers are
+        // synchronous, so the result is read from the `secrets` state
+        // afterwards (`selected`, `problem`). Use names under `setec-ui-dev/`
+        // (DECISIONS.md, 2026-09-16).
+        DebugServer.shared.register(action: "transfer") { params in
+            guard let name = params["name"] as? String else { throw DebugServer.Failure.badParams("name") }
+            guard let target = params["target"] as? String else { throw DebugServer.Failure.badParams("target") }
+            let move = params["move"] as? Bool ?? false
+            Task { _ = await store.copySecret(name: name, to: target, removingSource: move) }
+            return ["started": move ? "move" : "copy"]
+        }
         DebugServer.shared.register(action: "sheet") { params in
             let kind = params["kind"] as? String
             store.sheet = Self.sheet(named: kind, selected: store.selectedName)
@@ -86,6 +99,8 @@ final class AppDelegate: NSObject, NSApplicationDelegate {
         case "new": .newSecret
         case "version": selected.map { SecretStore.Sheet.newVersion($0) }
         case "delete": selected.map { SecretStore.Sheet.deleteSecret($0) }
+        case "copy": selected.map { SecretStore.Sheet.copySecret($0) }
+        case "move": selected.map { SecretStore.Sheet.moveSecret($0) }
         default: nil
         }
     }

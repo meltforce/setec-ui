@@ -14,6 +14,48 @@ place with the old form recorded under revisions — the entry is not duplicated
 
 ---
 
+## 2026-11-02 — copy and move carry the active value only, and a move deletes after a read-back
+
+**Decided:** 2026-11-02
+
+**Decision.** *Copy to …* and *Move to …* (the detail column's ⋯ menu and the
+Secret menu) open one sheet, `App/Sheets/TransferSecretSheet.swift`. setec has
+no copy or rename call, so both run `get` on the source, `put` and `activate`
+on the target, and a second `get` that must return the same value at the
+version `put` assigned. A move then runs `delete` on the source and re-reads
+the list to confirm it is gone (`SecretStore.copySecret`). Three rules hold:
+
+- Only the active value is carried over. The target starts with one version,
+  and the sheet names the versions that stay behind.
+- The target must be a name that does not exist. The sheet refuses an existing
+  name, and the store refuses it again before the first request.
+- The source is deleted only after the read-back matched. A failed read-back
+  leaves the source in place and reports it; a failed delete reports that the
+  copy exists and the source is still there.
+
+**Reasoning.** The history cannot be reproduced: `put` numbers versions itself
+and returns the active version unchanged when a value equals it, so a replay
+of v1…vN lands on different numbers or collapses versions. A `put` on an
+existing name followed by `activate` replaces what that secret's consumers
+read, which is a rotation and has its own sheet (*New version*). The
+read-back follows the rule in `CLAUDE.md` § *Gotchas* that a write is confirmed
+by re-reading: a move whose copy did not land would otherwise delete the only
+remaining value.
+
+**Alternatives considered.** Copying every version, rejected for the
+renumbering above. A typed-name confirmation for a move, as the delete sheet
+has, not adopted: the target name is already typed, and the value survives
+under it.
+
+**Trigger to re-open.** setec gaining a rename or copy call, or a need to keep
+version history across a move.
+
+**Verified.** 2026-11-02 against the production store under `setec-ui-dev/`:
+a source with two versions (v2 active) was copied, then moved; both targets
+held one active version with the value of v2, and the source was gone.
+
+---
+
 ## 2026-09-21 — the app is published from a GitHub mirror, and versions are dates
 
 **Decided:** 2026-09-21

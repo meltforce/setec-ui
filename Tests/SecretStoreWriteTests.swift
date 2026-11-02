@@ -117,6 +117,89 @@ final class SecretStoreWriteTests: XCTestCase {
         XCTAssertEqual(body?["Version"] as? Int, 2)
     }
 
+    // MARK: - Copy and move
+
+    /// Scripts a copy of `a/b` to `c/b`: the active value reads back as
+    /// version 1, which is also what `put` assigns.
+    private func answerCopy(putVersion: Int = 1) {
+        StubURLProtocol.exchange.answer("/api/get", json: #"{"Value":"c2VjcmV0","Version":1}"#)
+        StubURLProtocol.exchange.answer("/api/put", json: "\(putVersion)")
+        StubURLProtocol.exchange.answer("/api/activate", json: "null")
+        StubURLProtocol.exchange.answer("/api/delete", json: "null")
+    }
+
+    private var writes: [String] {
+        StubURLProtocol.exchange.requests.map(\.path).filter { $0 != "/api/list" }
+    }
+
+    func testCopyWritesTheActiveValueReadsItBackAndKeepsTheSource() async {
+        answerList()
+        answerCopy()
+        await store.refresh()
+        answerList(#"""
+        [{"Name":"a/b","Versions":[1],"ActiveVersion":1},{"Name":"c/b","Versions":[1],"ActiveVersion":1}]
+        """#)
+        let copied = await store.copySecret(name: "a/b", to: "c/b", removingSource: false)
+        XCTAssertTrue(copied)
+        XCTAssertEqual(writes, ["/api/get", "/api/put", "/api/activate", "/api/get"])
+        let put = StubURLProtocol.exchange.lastBody(to: "/api/put")
+        XCTAssertEqual(put?["Name"] as? String, "c/b")
+        XCTAssertEqual(put?["Value"] as? String, "c2VjcmV0", "the source's value, re-encoded unchanged")
+        XCTAssertEqual(store.selectedName, "c/b")
+        XCTAssertFalse(store.lastCall.contains("secret"), "the status bar never carries a value")
+    }
+
+    func testMoveDeletesTheSourceAfterTheCopyReadsBack() async {
+        answerList()
+        answerCopy()
+        await store.refresh()
+        answerList(#"[{"Name":"c/b","Versions":[1],"ActiveVersion":1}]"#)
+        let moved = await store.copySecret(name: "a/b", to: "c/b", removingSource: true)
+        XCTAssertTrue(moved)
+        XCTAssertEqual(writes, ["/api/get", "/api/put", "/api/activate", "/api/get", "/api/delete"])
+        XCTAssertEqual(StubURLProtocol.exchange.lastBody(to: "/api/delete")?["Name"] as? String, "a/b")
+        XCTAssertEqual(store.selectedName, "c/b")
+    }
+
+    /// The copy reads back as a different version than `put` assigned, so the
+    /// source is the only trustworthy value left and must not be deleted.
+    func testMoveKeepsTheSourceWhenTheCopyDoesNotReadBack() async {
+        answerList()
+        answerCopy(putVersion: 4)
+        await store.refresh()
+        let moved = await store.copySecret(name: "a/b", to: "c/b", removingSource: true)
+        XCTAssertFalse(moved)
+        XCTAssertFalse(writes.contains("/api/delete"))
+        XCTAssertEqual(store.problem, "c/b does not read back as the active value of a/b. a/b was not deleted.")
+    }
+
+    func testMoveReportsASourceTheServerKept() async {
+        answerList()
+        answerCopy()
+        await store.refresh()
+        answerList(#"""
+        [{"Name":"a/b","Versions":[1],"ActiveVersion":1},{"Name":"c/b","Versions":[1],"ActiveVersion":1}]
+        """#)
+        let moved = await store.copySecret(name: "a/b", to: "c/b", removingSource: true)
+        XCTAssertFalse(moved)
+        XCTAssertEqual(
+            store.problem,
+            "c/b holds the copy, but a/b is still there. The server accepted the delete and the list still shows it."
+        )
+    }
+
+    func testCopyRefusesAnExistingNameBeforeAnyRequest() async {
+        answerList(#"""
+        [{"Name":"a/b","Versions":[1],"ActiveVersion":1},{"Name":"c/b","Versions":[1,2],"ActiveVersion":2}]
+        """#)
+        answerCopy()
+        await store.refresh()
+        let copied = await store.copySecret(name: "a/b", to: "c/b", removingSource: false)
+        XCTAssertFalse(copied)
+        XCTAssertTrue(writes.isEmpty, "a put on c/b would have replaced what its consumers read")
+        XCTAssertEqual(store.problem, "c/b already exists. Nothing was copied.")
+    }
+
     func testAForbiddenWriteIsReportedAndChangesNothing() async {
         answerList()
         StubURLProtocol.exchange.answer("/api/put", status: 403, json: "null")

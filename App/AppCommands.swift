@@ -36,6 +36,12 @@ struct AppCommands: Commands {
             Button("New Version…") { actions?.newVersion() }
                 .keyboardShortcut("n", modifiers: [.command, .option])
                 .disabled(actions?.canActOnSecret != true)
+            // No shortcut: both are rare, and every free key here would
+            // need Shift or a third modifier.
+            Button("Copy Secret To…") { actions?.copySecret() }
+                .disabled(actions?.canActOnSecret != true)
+            Button("Move Secret To…") { actions?.moveSecret() }
+                .disabled(actions?.canActOnSecret != true)
             Button("Delete Secret…") { actions?.deleteSecret() }
                 .keyboardShortcut(.delete, modifiers: .command)
                 .disabled(actions?.canActOnSecret != true)
@@ -52,6 +58,8 @@ struct SecretActions {
     var newSecret: () -> Void
     var newVersion: () -> Void
     var deleteSecret: () -> Void
+    var copySecret: () -> Void
+    var moveSecret: () -> Void
     var refresh: () -> Void
     var toggleReveal: () -> Void
     var copyValue: () -> Void

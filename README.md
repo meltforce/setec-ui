@@ -4,8 +4,8 @@ A native macOS app for [setec](https://github.com/tailscale/setec), Tailscale's
 secrets service, which today is driven only by the `setec` CLI. It covers the
 read-and-rotate workflow: find a secret by group, filter or search, reveal and
 copy its value, publish a new version, roll back by activating an older one,
-delete a version or a whole secret, and see which tailnet principals hold which
-grant.
+delete a version or a whole secret, copy or move a secret to another name, and
+see which tailnet principals hold which grant.
 
 The app talks to a setec server over the tailnet. Identity comes from the local
 `tailscaled`, so there is no login screen and no token to enter.

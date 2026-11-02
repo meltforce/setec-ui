@@ -89,6 +89,31 @@ final class SmokeUITests: XCTestCase {
         XCTAssertFalse(field.waitForExistence(timeout: 2))
     }
 
+    /// The move sheet opens on the source name, which it refuses, and a group
+    /// chip turns it into a free name under that group. It presses nothing
+    /// but Cancel — a submit would move a production secret.
+    @MainActor
+    func testTheMoveSheetStartsOnTheSourceNameAndAcceptsAChip() {
+        let app = launch()
+        let list = app.descendants(matching: .any).matching(identifier: "secrets.list").firstMatch
+        XCTAssertTrue(list.waitForExistence(timeout: 15))
+        list.cells.firstMatch.click()
+        XCTAssertTrue(app.staticTexts["detail.title"].waitForExistence(timeout: 5), "a secret is selected")
+        app.menuBars.menuItems["Move Secret To…"].click()
+        let field = app.textFields["moveSecret.name"]
+        XCTAssertTrue(field.waitForExistence(timeout: 5))
+        let source = app.staticTexts["moveSecret.source"].value as? String
+        XCTAssertEqual(field.value as? String, source, "the field starts on the source name")
+        XCTAssertFalse(app.buttons["moveSecret.submit"].isEnabled, "the source name is not a target")
+        let chip = app.buttons.matching(NSPredicate(format: "identifier BEGINSWITH 'moveSecret.group.'")).firstMatch
+        XCTAssertTrue(chip.exists)
+        chip.click()
+        let renamed = field.value as? String ?? ""
+        XCTAssertTrue(renamed.hasSuffix("/" + (source?.split(separator: "/").last.map(String.init) ?? "")))
+        app.buttons["moveSecret.cancel"].click()
+        XCTAssertFalse(field.waitForExistence(timeout: 2))
+    }
+
     /// Copying moved from the action bar onto the value panel and appears on
     /// rollover. Hovering is what makes it exist; the test does what a person
     /// does. It presses nothing — a press would fetch a production value.

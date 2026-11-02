@@ -48,6 +48,10 @@ struct RootView: View {
                 DeleteSecretSheet(name: name)
             case let .deleteVersion(name, version):
                 DeleteVersionSheet(name: name, version: version)
+            case let .copySecret(name):
+                TransferSecretSheet(name: name, removingSource: false)
+            case let .moveSecret(name):
+                TransferSecretSheet(name: name, removingSource: true)
             }
         }
         .focusedSceneValue(\.secretActions, SecretActions(
@@ -60,6 +64,16 @@ struct RootView: View {
             deleteSecret: {
                 if let name = store.selectedName {
                     store.sheet = .deleteSecret(name)
+                }
+            },
+            copySecret: {
+                if let name = store.selectedName {
+                    store.sheet = .copySecret(name)
+                }
+            },
+            moveSecret: {
+                if let name = store.selectedName {
+                    store.sheet = .moveSecret(name)
                 }
             },
             refresh: { Task { await store.refresh() } },

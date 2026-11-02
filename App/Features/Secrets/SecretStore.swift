@@ -32,11 +32,15 @@ final class SecretStore {
         case newVersion(String)
         case deleteSecret(String)
         case deleteVersion(String, Int)
+        case copySecret(String)
+        case moveSecret(String)
 
         var id: String {
             switch self {
             case .newSecret: "new"
             case let .newVersion(name): "version:\(name)"
+            case let .copySecret(name): "copy:\(name)"
+            case let .moveSecret(name): "move:\(name)"
             case let .deleteSecret(name): "delete:\(name)"
             case let .deleteVersion(name, version): "delete-version:\(name):v\(version)"
             }
@@ -322,11 +326,75 @@ final class SecretStore {
         }
     }
 
+    /// Copies the active value of `name` to a new name, and with
+    /// `removingSource` deletes `name` afterwards. The API has no copy or
+    /// rename call, so this is `get`, `put`, `activate`, a second `get` that
+    /// reads the copy back, and for a move `delete`. Only the active value is
+    /// carried over: the target starts with one version.
+    ///
+    /// The source is deleted only after the copy has read back with the same
+    /// value as the active version, because a move whose copy did not land
+    /// would otherwise destroy the only remaining value. The value lives in
+    /// this function's locals and nowhere else.
+    func copySecret(name: String, to target: String, removingSource: Bool) async -> Bool {
+        var call = "POST /api/get → /api/put → /api/activate → /api/get {\"Name\":\"\(target)\"}"
+        if removingSource {
+            call += " → /api/delete {\"Name\":\"\(name)\"}"
+        }
+        return await write(describing: call) {
+            // `put` on an existing name appends a version and the `activate`
+            // after it would replace what that secret's consumers read. The
+            // sheet refuses such a name; this is the guard behind it.
+            guard target != name, !self.existingNames.contains(target) else {
+                throw TransferRefused.targetExists(target)
+            }
+            let client = try self.connected()
+            let source = try await client.get(name: name)
+            let version = try await client.put(name: target, value: source.value)
+            try await client.activate(name: target, version: version)
+            let copy = try await client.get(name: target)
+            guard copy.value == source.value, copy.version == version else {
+                await self.refresh()
+                throw Unconfirmed.copy(name, target)
+            }
+            if removingSource {
+                do {
+                    try await client.delete(name: name)
+                } catch {
+                    await self.refresh()
+                    self.selectedName = target
+                    throw Unconfirmed.sourceKept(name, target, self.message(for: error))
+                }
+            }
+            await self.refresh()
+            self.selectedName = target
+            if removingSource, self.secrets.contains(where: { $0.name == name }) {
+                throw Unconfirmed.sourceKept(name, target, nil)
+            }
+        }
+    }
+
+    enum TransferRefused: LocalizedError {
+        case targetExists(String)
+
+        var errorDescription: String? {
+            switch self {
+            case let .targetExists(name):
+                "\(name) already exists. Nothing was copied."
+            }
+        }
+    }
+
     /// The server accepted the call and the list still shows what it was asked
-    /// to remove.
+    /// to remove, or a copy does not read back as what was written.
     enum Unconfirmed: LocalizedError {
         case secret(String)
         case version(String, Int)
+        case copy(String, String)
+        /// The copy landed; the source is still there. The reason is the
+        /// failed call's message, or nil when the delete was accepted and the
+        /// list still shows the name.
+        case sourceKept(String, String, String?)
 
         var errorDescription: String? {
             switch self {
@@ -334,6 +402,11 @@ final class SecretStore {
                 "The server accepted the delete, but \(name) is still in the list. Nothing was removed."
             case let .version(name, version):
                 "The server accepted the delete, but v\(version) of \(name) is still in the list."
+            case let .copy(source, target):
+                "\(target) does not read back as the active value of \(source). \(source) was not deleted."
+            case let .sourceKept(source, target, reason):
+                "\(target) holds the copy, but \(source) is still there"
+                    + (reason.map { ": \($0)" } ?? ". The server accepted the delete and the list still shows it.")
             }
         }
     }

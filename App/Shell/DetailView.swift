@@ -72,6 +72,9 @@ struct DetailActionBar: View {
                 systemImage: "ellipsis",
                 items: [
                     .init(title: "Copy name") { SecretPasteboard.copyPlain(secret.name) },
+                    .separator("transfer"),
+                    .init(title: "Copy to …") { store.sheet = .copySecret(secret.name) },
+                    .init(title: "Move to …") { store.sheet = .moveSecret(secret.name) },
                     .separator("delete"),
                     .init(title: "Delete secret …", isDestructive: true) {
                         store.sheet = .deleteSecret(secret.name)
