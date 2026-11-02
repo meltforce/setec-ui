@@ -44,8 +44,13 @@ lint: ## swiftformat --lint and swiftlint, no changes
 	swiftformat App Services Tests UITests --lint
 	swiftlint lint --quiet
 
-test: project ## Unit and UI tests
-	set -o pipefail; $(XCODEBUILD) test $(PIPE)
+# The app has no built-in server, so the UI bundle hands the shell's
+# SETEC_SERVER to the app it launches. xcodebuild passes a variable to the test
+# runner only with the TEST_RUNNER_ prefix, which it strips. The unit bundle is
+# hosted in the app process and must not see it — ServerSettingTests assert
+# what the app does without one — so the two bundles run separately.
+test: test-unit ## Unit and UI tests
+	set -o pipefail; TEST_RUNNER_SETEC_SERVER="$$SETEC_SERVER" $(XCODEBUILD) test -only-testing:$(APP_MODULE)UITests $(PIPE)
 
 test-unit: project ## Unit tests only, without the UI bundle
 	set -o pipefail; $(XCODEBUILD) test -only-testing:$(APP_MODULE)Tests $(PIPE)

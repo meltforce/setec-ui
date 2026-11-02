@@ -13,6 +13,14 @@ final class SmokeUITests: XCTestCase {
     private func launch() -> XCUIApplication {
         let app = XCUIApplication()
         app.launchArguments = ignoreSavedState
+        // The app carries no built-in server (DECISIONS.md, 2026-09-21); without
+        // one the list column reads "No server yet" and every test below finds
+        // no list. `make test` forwards the shell's variable.
+        if let server = ProcessInfo.processInfo.environment["SETEC_SERVER"], !server.isEmpty {
+            app.launchEnvironment["SETEC_SERVER"] = server
+        } else {
+            XCTFail("SETEC_SERVER is not set for the test runner; run the UI tests through make test or make verify")
+        }
         app.launch()
         XCTAssertTrue(app.windows.firstMatch.waitForExistence(timeout: 15))
         return app
