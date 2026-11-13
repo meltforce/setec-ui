@@ -78,7 +78,7 @@ and answers 401 against this API.
 | `Services/` | The setec client, the tailnet policy client, the tailnet identity, the pasteboard, the logger, `DebugServer` (DEBUG builds only). |
 | `Resources/` | `Info.plist` and `App.entitlements` are generated from `project.yml` by `make project` and are gitignored. |
 | `project.yml` | The project definition. `*.xcodeproj` is generated from it and never committed. |
-| `tools/` | `check-docs.sh`, which guards the document contract. |
+| `tools/` | `check-workflow.sh`, which parses every workflow `run:` block with `/bin/bash -n`. |
 | `docs/` | The two README screenshots, one per appearance. `<picture>` in the README picks by `prefers-color-scheme`. |
 | `scripts/` | `package.sh`, which builds the signed, notarized DMG. `make dmg`, `make notarize` and the release workflow all call it. |
 | `.github/workflows/` | `release.yml`, the only pipeline that runs on GitHub: a `v*` tag produces the DMG and the release page. |
@@ -158,5 +158,4 @@ release.
 |---|---|
 | [`CLAUDE.md`](CLAUDE.md) | Conventions and gotchas for working in this repo. |
 | [`ROADMAP.md`](ROADMAP.md) | Open work. |
-| [`DECISIONS.md`](DECISIONS.md) | Decisions taken, with reasoning. |
-| [`INCIDENTS.md`](INCIDENTS.md) | Postmortems. |
+| `archive/` | Former decision log and postmortems, frozen. |

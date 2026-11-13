@@ -16,8 +16,7 @@
       "Bash(~/bin/winid:*)",
       "Bash(security find-identity:*)",
       "Bash(codesign -d:*)",
-      "Bash(codesign -v:*)",
-      "Bash(tools/check-docs.sh:*)"
+      "Bash(codesign -v:*)"
     ],
     "deny": [
       "Bash(sudo:*)",
